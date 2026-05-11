@@ -1,0 +1,4 @@
+.env
+/node_modules
+/playwright-data
+googleapis.credentials.json
