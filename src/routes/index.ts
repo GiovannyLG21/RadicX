@@ -6,9 +6,9 @@ import BotRoutes from '@/modules/Bot/bot.routes'
 
 const router = Router()
 
-router.use('/roles', RoleRoutes)
-router.use('/users', UserRoutes)
-router.use('/auth', AuthRoutes)
+// router.use('/roles', RoleRoutes)
+// router.use('/users', UserRoutes)
+// router.use('/auth', AuthRoutes)
 router.use('/bots', BotRoutes)
 
 export default router

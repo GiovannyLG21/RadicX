@@ -1,12 +1,12 @@
 import { EPSListType, IPSListType } from '../bot.types'
 import CoosaludBot from '../EPS/CoosaludBot'
-import HorisoesBot from '../Horisoes'
+import HorisoesFlow from '../Horisoes'
 
 //* Config
-export const HEADLESS_BROWSER = true
-export const SLOWMO_BROWSER = 100
+export const HEADLESS_BROWSER = false
+export const SLOWMO_BROWSER = 10
 export const DEFAULT_TIMEOUT = 10000
-export const NAVIGATION_TIMEOUT = 30000
+export const NAVIGATION_TIMEOUT = 20000
 
 
 //* EPS
@@ -30,7 +30,7 @@ export const IPSList: IPSListType = {
         code: '101',
         name: 'IPS HORIZONTE SOCIAL LA ESPERANZA SAS',
         shortname: 'Horisoes',
-        bot: HorisoesBot,
+        bot: HorisoesFlow,
         EPS: [
             EPSList['01']!
         ]

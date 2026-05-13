@@ -8,4 +8,9 @@ export const SFTP_CREDENTIALS = {
     password: 'jhAkif5ljahsdñ'
 }
 
+export const CONTRACTS = {
+    'Contributivo': 'NAL00C47051567-25',
+    'Subsidiado': 'NAL00S47051564-25'
+}
+
 export const HEV_FOLDER_ID = '1VJD2zjdvNG5ysgQOoAxq6GOwIZ-MxGRe'

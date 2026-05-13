@@ -8,7 +8,10 @@ export class LoginPage {
     ) { }
 
     async verifySession() {
-        return Boolean(await safeWait(this.page, this.data.sessionSelector))
+        return await this.page.locator(this.data.sessionSelector)
+            .waitFor({ state: 'visible', timeout: 3000 })
+            .then(() => true)
+            .catch(() => false)
     }
 
     async login() {
@@ -45,10 +48,10 @@ export const getFileType = (filename: string) => {
     return filename.split('.')[1]
 }
 
-export function formatDate(date: Date): string {    
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
+export function formatDate(date: Date): string {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
 
-  return `${day}-${month}-${year}`;
+    return `${day}-${month}-${year}`;
 }

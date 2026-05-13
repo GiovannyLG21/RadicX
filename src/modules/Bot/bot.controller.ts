@@ -20,7 +20,7 @@ export const availableEPS = asyncHandler(async (req, res) => {
     })
 })
 
-export const HorisoesFlow = asyncHandler(async (req, res) => {
+export const HorisoesBot = asyncHandler(async (req, res) => {
     const { bills }: IPSCodeType = req.body
 
     const IPSCode = 101
@@ -31,9 +31,9 @@ export const HorisoesFlow = asyncHandler(async (req, res) => {
     const IPSBot = IPSData.bot
     const EPSBot = EPSData.bot
     try {
-        await IPSBot(EPSBot, bills)
+        const resBot = await IPSBot(EPSBot, bills)
         return res.json({
-            message: 'Facturas radicadas',    
+            res: resBot,    
             status: 200
         })
     } catch (error: any) {

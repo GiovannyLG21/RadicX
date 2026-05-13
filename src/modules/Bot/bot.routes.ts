@@ -14,7 +14,7 @@ router.post('/ips/horisoes',
     validateBillsFile,    
     validateScheme(IPSCodeScheme), 
     validateSelectedEPS, 
-    botController.HorisoesFlow
+    botController.HorisoesBot
 )
 
 export default router
