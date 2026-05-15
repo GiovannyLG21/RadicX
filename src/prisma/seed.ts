@@ -22,6 +22,14 @@ async function main() {
             password: await hashPassword('1234567890')
         }
     })
+
+    await prisma.status.createMany({
+        data: [
+            { name: 'RUNNING' },
+            { name: 'SUCCESS' },
+            { name: 'FAILED' }
+        ]
+    })
 }
 
 main()

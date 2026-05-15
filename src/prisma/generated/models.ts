@@ -10,4 +10,8 @@
  */
 export type * from './models/User'
 export type * from './models/Role'
+export type * from './models/EPS'
+export type * from './models/IPS'
+export type * from './models/Status'
+export type * from './models/Executions'
 export type * from './commonInputTypes'

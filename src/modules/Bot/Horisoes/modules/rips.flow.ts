@@ -28,9 +28,10 @@ class RIPSPage {
         // Input 'Fecha desde' & 'Fecha hasta'
         await this.page.fill('input#date_from', '01-01-2010')
         await this.page.fill('input#date_to', actualDate)
-        // Button 'Exportar'
+
+        //* Button 'Exportar'
         const exportButton = this.page.locator('button[name="button_export_data"]')
-        // Button 'RIPS'
+        //* Button 'RIPS'
         const downloadButton = this.page.locator('div[name="rips_file"] a')
 
         //* CUV
@@ -60,15 +61,17 @@ class RIPSPage {
         const CUVDownloadPath = await CUVDownload.path()
         const CUVZipBuffer = fs.readFileSync(CUVDownloadPath)
 
-        //* RIPS
+        //* RIPS                                                          
         // Select 'RIPS'
         await this.page.getByLabel('RIPS').click()
         // Check 'Exclude Encabezado'
         await this.page.locator('input#exclude_rips_header').setChecked(true)
-        // Export and wait
+        // Clean download button
+        await downloadButton.evaluate(element => element.remove())
+        // Export
         await exportButton.click()
         // Wait download
-        await delay(500)
+        await downloadButton.waitFor()
         const downloadRIPSPromise = this.page.waitForEvent('download')
         await downloadButton.click()
         //* Zip
@@ -98,7 +101,7 @@ class RIPSPage {
             const fileCode = entry.code
 
             if (fileCode == 'CUV') {
-                fileName = `${bill}_CUV.json`
+                fileName = `CUV_${bill}.json`
             }
 
             return {

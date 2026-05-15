@@ -1,6 +1,7 @@
 import { Page, BrowserContext } from 'playwright'
 import { LoginDataType } from './bot.types'
 
+//* Playwright
 export class LoginPage {
     constructor(
         private page: Page,
@@ -44,6 +45,7 @@ export async function delay(ms: number) {
     )
 }
 
+//* Generals
 export const getFileType = (filename: string) => {
     return filename.split('.')[1]
 }

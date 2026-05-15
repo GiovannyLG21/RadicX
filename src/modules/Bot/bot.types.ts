@@ -1,5 +1,5 @@
 import z from 'zod'
-import { BrowserContext, Page } from 'playwright'
+import { Page } from 'playwright'
 import { IPSCodeScheme } from './bot.scheme'
 
 //* EPS
@@ -8,7 +8,7 @@ export type EPSListType = {
     name: string,
     bot: EPSBotType
 }
-export type EPSBotType = (page: Page, billsFiles: BillFilesType[]) => Promise<RadicacionCodesType | undefined>
+export type EPSBotType = (page: Page, billsFiles: BillFilesType[]) => Promise<void>
 
 //* IPS
 export type IPSListType = Record<string, {

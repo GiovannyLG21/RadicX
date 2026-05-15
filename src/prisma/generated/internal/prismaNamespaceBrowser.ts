@@ -52,7 +52,11 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
-  Role: 'Role'
+  Role: 'Role',
+  EPS: 'EPS',
+  IPS: 'IPS',
+  Status: 'Status',
+  Executions: 'Executions'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -99,12 +103,60 @@ export const RoleScalarFieldEnum = {
 export type RoleScalarFieldEnum = (typeof RoleScalarFieldEnum)[keyof typeof RoleScalarFieldEnum]
 
 
+export const EPSScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  name: 'name',
+  createdAt: 'createdAt'
+} as const
+
+export type EPSScalarFieldEnum = (typeof EPSScalarFieldEnum)[keyof typeof EPSScalarFieldEnum]
+
+
+export const IPSScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  name: 'name',
+  createdAt: 'createdAt'
+} as const
+
+export type IPSScalarFieldEnum = (typeof IPSScalarFieldEnum)[keyof typeof IPSScalarFieldEnum]
+
+
+export const StatusScalarFieldEnum = {
+  id: 'id',
+  name: 'name'
+} as const
+
+export type StatusScalarFieldEnum = (typeof StatusScalarFieldEnum)[keyof typeof StatusScalarFieldEnum]
+
+
+export const ExecutionsScalarFieldEnum = {
+  id: 'id',
+  ipsId: 'ipsId',
+  epsId: 'epsId',
+  statusId: 'statusId',
+  metadata: 'metadata',
+  started_at: 'started_at',
+  finished_at: 'finished_at'
+} as const
+
+export type ExecutionsScalarFieldEnum = (typeof ExecutionsScalarFieldEnum)[keyof typeof ExecutionsScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const NullsOrder = {
@@ -131,4 +183,51 @@ export const RoleOrderByRelevanceFieldEnum = {
 } as const
 
 export type RoleOrderByRelevanceFieldEnum = (typeof RoleOrderByRelevanceFieldEnum)[keyof typeof RoleOrderByRelevanceFieldEnum]
+
+
+export const EPSOrderByRelevanceFieldEnum = {
+  code: 'code',
+  name: 'name'
+} as const
+
+export type EPSOrderByRelevanceFieldEnum = (typeof EPSOrderByRelevanceFieldEnum)[keyof typeof EPSOrderByRelevanceFieldEnum]
+
+
+export const IPSOrderByRelevanceFieldEnum = {
+  code: 'code',
+  name: 'name'
+} as const
+
+export type IPSOrderByRelevanceFieldEnum = (typeof IPSOrderByRelevanceFieldEnum)[keyof typeof IPSOrderByRelevanceFieldEnum]
+
+
+export const StatusOrderByRelevanceFieldEnum = {
+  name: 'name'
+} as const
+
+export type StatusOrderByRelevanceFieldEnum = (typeof StatusOrderByRelevanceFieldEnum)[keyof typeof StatusOrderByRelevanceFieldEnum]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+} as const
+
+export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+export const ExecutionsOrderByRelevanceFieldEnum = {
+  id: 'id'
+} as const
+
+export type ExecutionsOrderByRelevanceFieldEnum = (typeof ExecutionsOrderByRelevanceFieldEnum)[keyof typeof ExecutionsOrderByRelevanceFieldEnum]
 

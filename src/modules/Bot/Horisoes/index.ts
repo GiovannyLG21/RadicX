@@ -16,24 +16,21 @@ async function HorisoesFlow(EPSBot: EPSBotType, bills: string[]) {
     await LoginFlow(page)
 
     //* Get files
-    billsFiles = await BillFlow(page, bills)    
+    billsFiles = await BillFlow(page, bills)
     billsFiles = await RIPSFlow(page, billsFiles)
     billsFiles = await horisoesService.getHEVFiles(billsFiles)
 
-    //* Create 'radicacion'
-    //! BOTON CREAR RADICACION DESHABILITADO
-    const radicacionCodes = await EPSBot(page, billsFiles)
+    //* Create 'radicacion' and upload files to 'SFTP'
+    await EPSBot(page, billsFiles)
 
-    //* Upload files
-    //! Coosaludbot
-    await horisoesService.sftpUpload(radicacionCodes, billsFiles)    
+    const proccessedBills: ProccessedBillsType =
+        billsFiles.map(({ files, ...data }) => ({
+            ...data,
+            files: files.map(
+                ({ buffer, ...filesData }) => ({ ...filesData })),
+        }))
 
-    const proccessedBills: ProccessedBillsType = billsFiles.map(({ files, ...data }) => ({
-        ...data,
-        files: files.map(({ buffer, ...filesData }) => ({ ...filesData })),
-    }))
-
-    return proccessedBills    
+    return proccessedBills
 }
 
 export default HorisoesFlow

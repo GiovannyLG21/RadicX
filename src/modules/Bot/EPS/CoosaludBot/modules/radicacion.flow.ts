@@ -20,7 +20,7 @@ class RadicacionPage {
         await this.page.locator('#numContraAuto').selectOption(contractCode)
         await this.page.locator('#typeServAuto').selectOption('PRO_POS')
         // Button 'Crear radicacion'
-        // await this.page.locator('#btCreateRadIps').click()
+        await this.page.locator('#btCreateRadIps').click()
         // Await confirmation and reload
         await delay(1000)
         await this.page.reload()
@@ -31,9 +31,7 @@ class RadicacionPage {
         await this.page.locator('[name="tablaRadicaciones_length"]').selectOption('-1')
         // Table rows
         const radicaciones = this.page.locator('#tablaRadicaciones tbody tr')
-        const numRadicaciones = await radicaciones.count()
-        // 'Radicacion' Created
-        const createdRadicacion = radicaciones.nth(numRadicaciones - 1)
+        const createdRadicacion = radicaciones.last()
         const codeRadication = await createdRadicacion.locator('td').nth(3).textContent() as string
 
         return codeRadication.trim()
@@ -56,7 +54,7 @@ class RadicacionPage {
 }
 
 async function radicacionFlow(page: Page, billsFiles: BillFilesType[]) {
-    const radicacionPage = new RadicacionPage(page)        
+    const radicacionPage = new RadicacionPage(page)
     const contracts = radicacionPage.getContracts(billsFiles)
     const radicacionCodes: RadicacionCodesType = []
 
@@ -70,6 +68,7 @@ async function radicacionFlow(page: Page, billsFiles: BillFilesType[]) {
         })
     }
 
+    console.log(radicacionCodes)
     return radicacionCodes
 }
 

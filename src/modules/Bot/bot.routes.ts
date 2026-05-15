@@ -17,4 +17,6 @@ router.post('/ips/horisoes',
     botController.HorisoesBot
 )
 
+// router.get('/ips/horisoes/radicados/:radicado', botController.getRadicado)
+
 export default router

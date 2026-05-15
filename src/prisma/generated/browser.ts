@@ -27,3 +27,23 @@ export type User = Prisma.UserModel
  * 
  */
 export type Role = Prisma.RoleModel
+/**
+ * Model EPS
+ * 
+ */
+export type EPS = Prisma.EPSModel
+/**
+ * Model IPS
+ * 
+ */
+export type IPS = Prisma.IPSModel
+/**
+ * Model Status
+ * 
+ */
+export type Status = Prisma.StatusModel
+/**
+ * Model Executions
+ * 
+ */
+export type Executions = Prisma.ExecutionsModel

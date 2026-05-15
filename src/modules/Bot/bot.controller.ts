@@ -1,6 +1,7 @@
 import { asyncHandler } from '@/middlewares'
 import { IPSList } from './config/config'
 import { IPSCodeType } from './bot.types'
+import * as horisoesService from './Horisoes/horisoes.service'
 
 export const availableEPS = asyncHandler(async (req, res) => {
     const data: IPSCodeType = req.body
@@ -20,6 +21,7 @@ export const availableEPS = asyncHandler(async (req, res) => {
     })
 })
 
+//* Horisoes
 export const HorisoesBot = asyncHandler(async (req, res) => {
     const { bills }: IPSCodeType = req.body
 
@@ -33,7 +35,7 @@ export const HorisoesBot = asyncHandler(async (req, res) => {
     try {
         const resBot = await IPSBot(EPSBot, bills)
         return res.json({
-            res: resBot,    
+            res: resBot,
             status: 200
         })
     } catch (error: any) {
@@ -45,3 +47,44 @@ export const HorisoesBot = asyncHandler(async (req, res) => {
         })
     }
 })
+
+// export const getRadicado = asyncHandler(async (req, res) => {
+//     const { radicado: radicadoCode } = req.params
+
+//     if (!radicadoCode) return res.status(400).json({
+//         message: 'El numero de radicado/pre-radicado es requerido',
+//         status: 400
+//     })
+
+//     const radicado = await horisoesService.getRadicadoByCode(radicadoCode)
+//     if (!radicado) return res.status(404).json({
+//         message: 'Radicado/pre-radicado no encontrados',
+//         status: 404
+//     })
+
+//     const {
+//         preradicadoCode,
+//         radicadoCode: radicadoCodeData,
+//         radicadoSuccess,
+//         contract,
+//         bills,
+//         createdAt
+//     } = radicado
+
+//     const data = {
+//         codigo_preradicado: preradicadoCode,
+//         radicado: radicadoSuccess,
+//         codigo_radicado: radicadoCodeData,
+//         contrato: contract.regimen,
+//         fechaRadicado: createdAt,
+//         estado: null,
+//         cantidad_facturas: bills.length,
+//         facturas: bills.map(bill => bill.code)
+//     }
+
+//     return res.json({
+//         message: 'Radicado/pre-radicado encontrado',
+//         data,
+//         status: 200
+//     })
+// })
