@@ -1,13 +1,16 @@
 import Router from 'express'
-import { validateScheme } from '@/middlewares'
+import { upload, validateScheme } from '@/middlewares'
 import { executionScheme, executionUpdateScheme } from './execution.scheme'
 import * as executionController from './execution.controller'
+import { validateBillsFile } from './execution.middleware'
 
 const router = Router()
 
 router.route('/')
     .get(executionController.executions)
-    .post(validateScheme(executionScheme),
+    .post(upload.single('bills'),
+        validateBillsFile,
+        validateScheme(executionScheme),
         executionController.createExecution)
 
 router.route('/:id')

@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"  
+  provider = "mysql"
 }
 
 model User {
@@ -46,7 +46,7 @@ model EPS {
   id        Int      @id @default(autoincrement())
   code      String   @unique @map("codigo") @db.VarChar(6)
   name      String   @unique @map("nombre") @db.VarChar(100)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp()
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp()
 
   executions Executions[]
 
@@ -57,7 +57,7 @@ model IPS {
   id        Int      @id @default(autoincrement())
   code      String   @unique @map("codigo") @db.VarChar(11)
   name      String   @unique @map("nombre") @db.VarChar(100)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp()
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp()
 
   executions Executions[]
 
@@ -75,16 +75,16 @@ model Status {
 
 model Executions {
   id          String    @id @default(cuid())
-  ipsId       Int       @map("ips_id")
-  epsId       Int       @map("eps_id")
+  ipsCode     String       @map("ips_codigo")
+  epsCode     String       @map("eps_codigo")
   statusId    Int       @map("estado")
   metadata    Json
-  started_at  DateTime?  @default(now()) @map("started_at") @db.Timestamp()
+  started_at  DateTime? @default(now()) @map("started_at") @db.Timestamp()
   finished_at DateTime? @map("finished_at") @db.Timestamp()
 
   status Status @relation(fields: [statusId], references: [id])
-  ips    IPS    @relation(fields: [ipsId], references: [id])
-  eps    EPS    @relation(fields: [epsId], references: [id])
+  ips    IPS    @relation(fields: [ipsCode], references: [code])
+  eps    EPS    @relation(fields: [epsCode], references: [code])
 
   @@map("ejecuciones")
 }

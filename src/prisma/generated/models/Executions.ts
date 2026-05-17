@@ -27,21 +27,17 @@ export type AggregateExecutions = {
 }
 
 export type ExecutionsAvgAggregateOutputType = {
-  ipsId: number | null
-  epsId: number | null
   statusId: number | null
 }
 
 export type ExecutionsSumAggregateOutputType = {
-  ipsId: number | null
-  epsId: number | null
   statusId: number | null
 }
 
 export type ExecutionsMinAggregateOutputType = {
   id: string | null
-  ipsId: number | null
-  epsId: number | null
+  ipsCode: string | null
+  epsCode: string | null
   statusId: number | null
   started_at: Date | null
   finished_at: Date | null
@@ -49,8 +45,8 @@ export type ExecutionsMinAggregateOutputType = {
 
 export type ExecutionsMaxAggregateOutputType = {
   id: string | null
-  ipsId: number | null
-  epsId: number | null
+  ipsCode: string | null
+  epsCode: string | null
   statusId: number | null
   started_at: Date | null
   finished_at: Date | null
@@ -58,8 +54,8 @@ export type ExecutionsMaxAggregateOutputType = {
 
 export type ExecutionsCountAggregateOutputType = {
   id: number
-  ipsId: number
-  epsId: number
+  ipsCode: number
+  epsCode: number
   statusId: number
   metadata: number
   started_at: number
@@ -69,21 +65,17 @@ export type ExecutionsCountAggregateOutputType = {
 
 
 export type ExecutionsAvgAggregateInputType = {
-  ipsId?: true
-  epsId?: true
   statusId?: true
 }
 
 export type ExecutionsSumAggregateInputType = {
-  ipsId?: true
-  epsId?: true
   statusId?: true
 }
 
 export type ExecutionsMinAggregateInputType = {
   id?: true
-  ipsId?: true
-  epsId?: true
+  ipsCode?: true
+  epsCode?: true
   statusId?: true
   started_at?: true
   finished_at?: true
@@ -91,8 +83,8 @@ export type ExecutionsMinAggregateInputType = {
 
 export type ExecutionsMaxAggregateInputType = {
   id?: true
-  ipsId?: true
-  epsId?: true
+  ipsCode?: true
+  epsCode?: true
   statusId?: true
   started_at?: true
   finished_at?: true
@@ -100,8 +92,8 @@ export type ExecutionsMaxAggregateInputType = {
 
 export type ExecutionsCountAggregateInputType = {
   id?: true
-  ipsId?: true
-  epsId?: true
+  ipsCode?: true
+  epsCode?: true
   statusId?: true
   metadata?: true
   started_at?: true
@@ -197,8 +189,8 @@ export type ExecutionsGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inter
 
 export type ExecutionsGroupByOutputType = {
   id: string
-  ipsId: number
-  epsId: number
+  ipsCode: string
+  epsCode: string
   statusId: number
   metadata: runtime.JsonValue
   started_at: Date | null
@@ -230,8 +222,8 @@ export type ExecutionsWhereInput = {
   OR?: Prisma.ExecutionsWhereInput[]
   NOT?: Prisma.ExecutionsWhereInput | Prisma.ExecutionsWhereInput[]
   id?: Prisma.StringFilter<"Executions"> | string
-  ipsId?: Prisma.IntFilter<"Executions"> | number
-  epsId?: Prisma.IntFilter<"Executions"> | number
+  ipsCode?: Prisma.StringFilter<"Executions"> | string
+  epsCode?: Prisma.StringFilter<"Executions"> | string
   statusId?: Prisma.IntFilter<"Executions"> | number
   metadata?: Prisma.JsonFilter<"Executions">
   started_at?: Prisma.DateTimeNullableFilter<"Executions"> | Date | string | null
@@ -243,8 +235,8 @@ export type ExecutionsWhereInput = {
 
 export type ExecutionsOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  ipsId?: Prisma.SortOrder
-  epsId?: Prisma.SortOrder
+  ipsCode?: Prisma.SortOrder
+  epsCode?: Prisma.SortOrder
   statusId?: Prisma.SortOrder
   metadata?: Prisma.SortOrder
   started_at?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -260,8 +252,8 @@ export type ExecutionsWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.ExecutionsWhereInput | Prisma.ExecutionsWhereInput[]
   OR?: Prisma.ExecutionsWhereInput[]
   NOT?: Prisma.ExecutionsWhereInput | Prisma.ExecutionsWhereInput[]
-  ipsId?: Prisma.IntFilter<"Executions"> | number
-  epsId?: Prisma.IntFilter<"Executions"> | number
+  ipsCode?: Prisma.StringFilter<"Executions"> | string
+  epsCode?: Prisma.StringFilter<"Executions"> | string
   statusId?: Prisma.IntFilter<"Executions"> | number
   metadata?: Prisma.JsonFilter<"Executions">
   started_at?: Prisma.DateTimeNullableFilter<"Executions"> | Date | string | null
@@ -273,8 +265,8 @@ export type ExecutionsWhereUniqueInput = Prisma.AtLeast<{
 
 export type ExecutionsOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  ipsId?: Prisma.SortOrder
-  epsId?: Prisma.SortOrder
+  ipsCode?: Prisma.SortOrder
+  epsCode?: Prisma.SortOrder
   statusId?: Prisma.SortOrder
   metadata?: Prisma.SortOrder
   started_at?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -291,8 +283,8 @@ export type ExecutionsScalarWhereWithAggregatesInput = {
   OR?: Prisma.ExecutionsScalarWhereWithAggregatesInput[]
   NOT?: Prisma.ExecutionsScalarWhereWithAggregatesInput | Prisma.ExecutionsScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"Executions"> | string
-  ipsId?: Prisma.IntWithAggregatesFilter<"Executions"> | number
-  epsId?: Prisma.IntWithAggregatesFilter<"Executions"> | number
+  ipsCode?: Prisma.StringWithAggregatesFilter<"Executions"> | string
+  epsCode?: Prisma.StringWithAggregatesFilter<"Executions"> | string
   statusId?: Prisma.IntWithAggregatesFilter<"Executions"> | number
   metadata?: Prisma.JsonWithAggregatesFilter<"Executions">
   started_at?: Prisma.DateTimeNullableWithAggregatesFilter<"Executions"> | Date | string | null
@@ -311,8 +303,8 @@ export type ExecutionsCreateInput = {
 
 export type ExecutionsUncheckedCreateInput = {
   id?: string
-  ipsId: number
-  epsId: number
+  ipsCode: string
+  epsCode: string
   statusId: number
   metadata: Prisma.JsonNullValueInput | runtime.InputJsonValue
   started_at?: Date | string | null
@@ -331,8 +323,8 @@ export type ExecutionsUpdateInput = {
 
 export type ExecutionsUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  ipsId?: Prisma.IntFieldUpdateOperationsInput | number
-  epsId?: Prisma.IntFieldUpdateOperationsInput | number
+  ipsCode?: Prisma.StringFieldUpdateOperationsInput | string
+  epsCode?: Prisma.StringFieldUpdateOperationsInput | string
   statusId?: Prisma.IntFieldUpdateOperationsInput | number
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   started_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -341,8 +333,8 @@ export type ExecutionsUncheckedUpdateInput = {
 
 export type ExecutionsCreateManyInput = {
   id?: string
-  ipsId: number
-  epsId: number
+  ipsCode: string
+  epsCode: string
   statusId: number
   metadata: Prisma.JsonNullValueInput | runtime.InputJsonValue
   started_at?: Date | string | null
@@ -358,8 +350,8 @@ export type ExecutionsUpdateManyMutationInput = {
 
 export type ExecutionsUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  ipsId?: Prisma.IntFieldUpdateOperationsInput | number
-  epsId?: Prisma.IntFieldUpdateOperationsInput | number
+  ipsCode?: Prisma.StringFieldUpdateOperationsInput | string
+  epsCode?: Prisma.StringFieldUpdateOperationsInput | string
   statusId?: Prisma.IntFieldUpdateOperationsInput | number
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   started_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -384,8 +376,8 @@ export type ExecutionsOrderByRelevanceInput = {
 
 export type ExecutionsCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  ipsId?: Prisma.SortOrder
-  epsId?: Prisma.SortOrder
+  ipsCode?: Prisma.SortOrder
+  epsCode?: Prisma.SortOrder
   statusId?: Prisma.SortOrder
   metadata?: Prisma.SortOrder
   started_at?: Prisma.SortOrder
@@ -393,15 +385,13 @@ export type ExecutionsCountOrderByAggregateInput = {
 }
 
 export type ExecutionsAvgOrderByAggregateInput = {
-  ipsId?: Prisma.SortOrder
-  epsId?: Prisma.SortOrder
   statusId?: Prisma.SortOrder
 }
 
 export type ExecutionsMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  ipsId?: Prisma.SortOrder
-  epsId?: Prisma.SortOrder
+  ipsCode?: Prisma.SortOrder
+  epsCode?: Prisma.SortOrder
   statusId?: Prisma.SortOrder
   started_at?: Prisma.SortOrder
   finished_at?: Prisma.SortOrder
@@ -409,16 +399,14 @@ export type ExecutionsMaxOrderByAggregateInput = {
 
 export type ExecutionsMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  ipsId?: Prisma.SortOrder
-  epsId?: Prisma.SortOrder
+  ipsCode?: Prisma.SortOrder
+  epsCode?: Prisma.SortOrder
   statusId?: Prisma.SortOrder
   started_at?: Prisma.SortOrder
   finished_at?: Prisma.SortOrder
 }
 
 export type ExecutionsSumOrderByAggregateInput = {
-  ipsId?: Prisma.SortOrder
-  epsId?: Prisma.SortOrder
   statusId?: Prisma.SortOrder
 }
 
@@ -559,7 +547,7 @@ export type ExecutionsCreateWithoutEpsInput = {
 
 export type ExecutionsUncheckedCreateWithoutEpsInput = {
   id?: string
-  ipsId: number
+  ipsCode: string
   statusId: number
   metadata: Prisma.JsonNullValueInput | runtime.InputJsonValue
   started_at?: Date | string | null
@@ -597,8 +585,8 @@ export type ExecutionsScalarWhereInput = {
   OR?: Prisma.ExecutionsScalarWhereInput[]
   NOT?: Prisma.ExecutionsScalarWhereInput | Prisma.ExecutionsScalarWhereInput[]
   id?: Prisma.StringFilter<"Executions"> | string
-  ipsId?: Prisma.IntFilter<"Executions"> | number
-  epsId?: Prisma.IntFilter<"Executions"> | number
+  ipsCode?: Prisma.StringFilter<"Executions"> | string
+  epsCode?: Prisma.StringFilter<"Executions"> | string
   statusId?: Prisma.IntFilter<"Executions"> | number
   metadata?: Prisma.JsonFilter<"Executions">
   started_at?: Prisma.DateTimeNullableFilter<"Executions"> | Date | string | null
@@ -616,7 +604,7 @@ export type ExecutionsCreateWithoutIpsInput = {
 
 export type ExecutionsUncheckedCreateWithoutIpsInput = {
   id?: string
-  epsId: number
+  epsCode: string
   statusId: number
   metadata: Prisma.JsonNullValueInput | runtime.InputJsonValue
   started_at?: Date | string | null
@@ -660,8 +648,8 @@ export type ExecutionsCreateWithoutStatusInput = {
 
 export type ExecutionsUncheckedCreateWithoutStatusInput = {
   id?: string
-  ipsId: number
-  epsId: number
+  ipsCode: string
+  epsCode: string
   metadata: Prisma.JsonNullValueInput | runtime.InputJsonValue
   started_at?: Date | string | null
   finished_at?: Date | string | null
@@ -695,7 +683,7 @@ export type ExecutionsUpdateManyWithWhereWithoutStatusInput = {
 
 export type ExecutionsCreateManyEpsInput = {
   id?: string
-  ipsId: number
+  ipsCode: string
   statusId: number
   metadata: Prisma.JsonNullValueInput | runtime.InputJsonValue
   started_at?: Date | string | null
@@ -713,7 +701,7 @@ export type ExecutionsUpdateWithoutEpsInput = {
 
 export type ExecutionsUncheckedUpdateWithoutEpsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  ipsId?: Prisma.IntFieldUpdateOperationsInput | number
+  ipsCode?: Prisma.StringFieldUpdateOperationsInput | string
   statusId?: Prisma.IntFieldUpdateOperationsInput | number
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   started_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -722,7 +710,7 @@ export type ExecutionsUncheckedUpdateWithoutEpsInput = {
 
 export type ExecutionsUncheckedUpdateManyWithoutEpsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  ipsId?: Prisma.IntFieldUpdateOperationsInput | number
+  ipsCode?: Prisma.StringFieldUpdateOperationsInput | string
   statusId?: Prisma.IntFieldUpdateOperationsInput | number
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   started_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -731,7 +719,7 @@ export type ExecutionsUncheckedUpdateManyWithoutEpsInput = {
 
 export type ExecutionsCreateManyIpsInput = {
   id?: string
-  epsId: number
+  epsCode: string
   statusId: number
   metadata: Prisma.JsonNullValueInput | runtime.InputJsonValue
   started_at?: Date | string | null
@@ -749,7 +737,7 @@ export type ExecutionsUpdateWithoutIpsInput = {
 
 export type ExecutionsUncheckedUpdateWithoutIpsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  epsId?: Prisma.IntFieldUpdateOperationsInput | number
+  epsCode?: Prisma.StringFieldUpdateOperationsInput | string
   statusId?: Prisma.IntFieldUpdateOperationsInput | number
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   started_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -758,7 +746,7 @@ export type ExecutionsUncheckedUpdateWithoutIpsInput = {
 
 export type ExecutionsUncheckedUpdateManyWithoutIpsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  epsId?: Prisma.IntFieldUpdateOperationsInput | number
+  epsCode?: Prisma.StringFieldUpdateOperationsInput | string
   statusId?: Prisma.IntFieldUpdateOperationsInput | number
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   started_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -767,8 +755,8 @@ export type ExecutionsUncheckedUpdateManyWithoutIpsInput = {
 
 export type ExecutionsCreateManyStatusInput = {
   id?: string
-  ipsId: number
-  epsId: number
+  ipsCode: string
+  epsCode: string
   metadata: Prisma.JsonNullValueInput | runtime.InputJsonValue
   started_at?: Date | string | null
   finished_at?: Date | string | null
@@ -785,8 +773,8 @@ export type ExecutionsUpdateWithoutStatusInput = {
 
 export type ExecutionsUncheckedUpdateWithoutStatusInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  ipsId?: Prisma.IntFieldUpdateOperationsInput | number
-  epsId?: Prisma.IntFieldUpdateOperationsInput | number
+  ipsCode?: Prisma.StringFieldUpdateOperationsInput | string
+  epsCode?: Prisma.StringFieldUpdateOperationsInput | string
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   started_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   finished_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -794,8 +782,8 @@ export type ExecutionsUncheckedUpdateWithoutStatusInput = {
 
 export type ExecutionsUncheckedUpdateManyWithoutStatusInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  ipsId?: Prisma.IntFieldUpdateOperationsInput | number
-  epsId?: Prisma.IntFieldUpdateOperationsInput | number
+  ipsCode?: Prisma.StringFieldUpdateOperationsInput | string
+  epsCode?: Prisma.StringFieldUpdateOperationsInput | string
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   started_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   finished_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -805,8 +793,8 @@ export type ExecutionsUncheckedUpdateManyWithoutStatusInput = {
 
 export type ExecutionsSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  ipsId?: boolean
-  epsId?: boolean
+  ipsCode?: boolean
+  epsCode?: boolean
   statusId?: boolean
   metadata?: boolean
   started_at?: boolean
@@ -820,15 +808,15 @@ export type ExecutionsSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
 
 export type ExecutionsSelectScalar = {
   id?: boolean
-  ipsId?: boolean
-  epsId?: boolean
+  ipsCode?: boolean
+  epsCode?: boolean
   statusId?: boolean
   metadata?: boolean
   started_at?: boolean
   finished_at?: boolean
 }
 
-export type ExecutionsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ipsId" | "epsId" | "statusId" | "metadata" | "started_at" | "finished_at", ExtArgs["result"]["executions"]>
+export type ExecutionsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ipsCode" | "epsCode" | "statusId" | "metadata" | "started_at" | "finished_at", ExtArgs["result"]["executions"]>
 export type ExecutionsInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   status?: boolean | Prisma.StatusDefaultArgs<ExtArgs>
   ips?: boolean | Prisma.IPSDefaultArgs<ExtArgs>
@@ -844,8 +832,8 @@ export type $ExecutionsPayload<ExtArgs extends runtime.Types.Extensions.Internal
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
-    ipsId: number
-    epsId: number
+    ipsCode: string
+    epsCode: string
     statusId: number
     metadata: runtime.JsonValue
     started_at: Date | null
@@ -1223,8 +1211,8 @@ export interface Prisma__ExecutionsClient<T, Null = never, ExtArgs extends runti
  */
 export interface ExecutionsFieldRefs {
   readonly id: Prisma.FieldRef<"Executions", 'String'>
-  readonly ipsId: Prisma.FieldRef<"Executions", 'Int'>
-  readonly epsId: Prisma.FieldRef<"Executions", 'Int'>
+  readonly ipsCode: Prisma.FieldRef<"Executions", 'String'>
+  readonly epsCode: Prisma.FieldRef<"Executions", 'String'>
   readonly statusId: Prisma.FieldRef<"Executions", 'Int'>
   readonly metadata: Prisma.FieldRef<"Executions", 'Json'>
   readonly started_at: Prisma.FieldRef<"Executions", 'DateTime'>

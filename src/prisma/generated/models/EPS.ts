@@ -177,7 +177,7 @@ export type EPSGroupByOutputType = {
   id: number
   code: string
   name: string
-  createdAt: Date
+  createdAt: Date | null
   _count: EPSCountAggregateOutputType | null
   _avg: EPSAvgAggregateOutputType | null
   _sum: EPSSumAggregateOutputType | null
@@ -207,7 +207,7 @@ export type EPSWhereInput = {
   id?: Prisma.IntFilter<"EPS"> | number
   code?: Prisma.StringFilter<"EPS"> | string
   name?: Prisma.StringFilter<"EPS"> | string
-  createdAt?: Prisma.DateTimeFilter<"EPS"> | Date | string
+  createdAt?: Prisma.DateTimeNullableFilter<"EPS"> | Date | string | null
   executions?: Prisma.ExecutionsListRelationFilter
 }
 
@@ -215,7 +215,7 @@ export type EPSOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  createdAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrderInput | Prisma.SortOrder
   executions?: Prisma.ExecutionsOrderByRelationAggregateInput
   _relevance?: Prisma.EPSOrderByRelevanceInput
 }
@@ -227,7 +227,7 @@ export type EPSWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.EPSWhereInput | Prisma.EPSWhereInput[]
   OR?: Prisma.EPSWhereInput[]
   NOT?: Prisma.EPSWhereInput | Prisma.EPSWhereInput[]
-  createdAt?: Prisma.DateTimeFilter<"EPS"> | Date | string
+  createdAt?: Prisma.DateTimeNullableFilter<"EPS"> | Date | string | null
   executions?: Prisma.ExecutionsListRelationFilter
 }, "id" | "code" | "name">
 
@@ -235,7 +235,7 @@ export type EPSOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  createdAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.EPSCountOrderByAggregateInput
   _avg?: Prisma.EPSAvgOrderByAggregateInput
   _max?: Prisma.EPSMaxOrderByAggregateInput
@@ -250,13 +250,13 @@ export type EPSScalarWhereWithAggregatesInput = {
   id?: Prisma.IntWithAggregatesFilter<"EPS"> | number
   code?: Prisma.StringWithAggregatesFilter<"EPS"> | string
   name?: Prisma.StringWithAggregatesFilter<"EPS"> | string
-  createdAt?: Prisma.DateTimeWithAggregatesFilter<"EPS"> | Date | string
+  createdAt?: Prisma.DateTimeNullableWithAggregatesFilter<"EPS"> | Date | string | null
 }
 
 export type EPSCreateInput = {
   code: string
   name: string
-  createdAt?: Date | string
+  createdAt?: Date | string | null
   executions?: Prisma.ExecutionsCreateNestedManyWithoutEpsInput
 }
 
@@ -264,14 +264,14 @@ export type EPSUncheckedCreateInput = {
   id?: number
   code: string
   name: string
-  createdAt?: Date | string
+  createdAt?: Date | string | null
   executions?: Prisma.ExecutionsUncheckedCreateNestedManyWithoutEpsInput
 }
 
 export type EPSUpdateInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executions?: Prisma.ExecutionsUpdateManyWithoutEpsNestedInput
 }
 
@@ -279,7 +279,7 @@ export type EPSUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executions?: Prisma.ExecutionsUncheckedUpdateManyWithoutEpsNestedInput
 }
 
@@ -287,20 +287,20 @@ export type EPSCreateManyInput = {
   id?: number
   code: string
   name: string
-  createdAt?: Date | string
+  createdAt?: Date | string | null
 }
 
 export type EPSUpdateManyMutationInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type EPSUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type EPSOrderByRelevanceInput = {
@@ -343,10 +343,6 @@ export type EPSScalarRelationFilter = {
   isNot?: Prisma.EPSWhereInput
 }
 
-export type DateTimeFieldUpdateOperationsInput = {
-  set?: Date | string
-}
-
 export type EPSCreateNestedOneWithoutExecutionsInput = {
   create?: Prisma.XOR<Prisma.EPSCreateWithoutExecutionsInput, Prisma.EPSUncheckedCreateWithoutExecutionsInput>
   connectOrCreate?: Prisma.EPSCreateOrConnectWithoutExecutionsInput
@@ -364,14 +360,14 @@ export type EPSUpdateOneRequiredWithoutExecutionsNestedInput = {
 export type EPSCreateWithoutExecutionsInput = {
   code: string
   name: string
-  createdAt?: Date | string
+  createdAt?: Date | string | null
 }
 
 export type EPSUncheckedCreateWithoutExecutionsInput = {
   id?: number
   code: string
   name: string
-  createdAt?: Date | string
+  createdAt?: Date | string | null
 }
 
 export type EPSCreateOrConnectWithoutExecutionsInput = {
@@ -393,14 +389,14 @@ export type EPSUpdateToOneWithWhereWithoutExecutionsInput = {
 export type EPSUpdateWithoutExecutionsInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type EPSUncheckedUpdateWithoutExecutionsInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 
@@ -467,7 +463,7 @@ export type $EPSPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
     id: number
     code: string
     name: string
-    createdAt: Date
+    createdAt: Date | null
   }, ExtArgs["result"]["ePS"]>
   composites: {}
 }

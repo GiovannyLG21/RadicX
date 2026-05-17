@@ -7,6 +7,6 @@ export const lowerCase = (string: string) => {
     return string.trim().toLowerCase()
 }
 
-export const isValidDate = (date: string) => {
-    return !isNaN(Date.parse(date))
+export const getFileType = (filename: string) => {
+    return filename.split('.')[1]
 }

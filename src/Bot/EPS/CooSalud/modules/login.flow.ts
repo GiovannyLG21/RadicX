@@ -1,5 +1,5 @@
-import { LoginDataType } from '@/modules/Bot/bot.types'
-import { LoginPage } from '@/modules/Bot/bot.utils'
+import { LoginDataType } from '@/Bot/types'
+import { LoginPage } from '@/Bot/utils'
 import { Page } from 'playwright'
 import { CREDENTIALS } from '../config/config'
 

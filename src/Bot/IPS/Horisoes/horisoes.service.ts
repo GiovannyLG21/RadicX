@@ -1,7 +1,6 @@
-import drive from '../config/googleapis'
+import drive from '@/Bot/config/googleapis'
 import { HEV_FOLDER_ID } from './config/config'
-import { BillFilesType } from '../bot.types'
-import prisma from '@/config/prisma'
+import { BillDataType } from '@/Bot/types'
 
 // export async function getRadicadoByCode(code: string) {
 //     return await prisma.radicados.findFirst({
@@ -18,7 +17,7 @@ import prisma from '@/config/prisma'
 //     })
 // }
 
-export async function downloadDriveFile(folderId: string, fileName: string): Promise<Buffer | undefined> {
+async function downloadDriveFile(folderId: string, fileName: string): Promise<Buffer | undefined> {
     const res = await drive.files.list({
         q: `
             '${folderId}' in parents
@@ -55,11 +54,11 @@ export async function downloadDriveFile(folderId: string, fileName: string): Pro
     })
 }
 
-export async function getHEVFiles(billsFiles: BillFilesType[]) {
-    for (const entry of billsFiles) {
-        if (!entry.success) continue
-        const bill = entry.bill
-        const RIPSFileBuffer = entry.files.find(file => file.code == 'RIPS')!.buffer
+export async function getHEVFiles(billData: BillDataType) {
+    if (!billData.success) return billData
+    try {
+        const bill = billData.bill
+        const RIPSFileBuffer = billData.files.find(file => file.code == 'RIPS')!.buffer
         const RIPSfileData = RIPSFileBuffer.toString('utf-8')
         const fileDataParse = JSON.parse(RIPSfileData)
 
@@ -69,19 +68,25 @@ export async function getHEVFiles(billsFiles: BillFilesType[]) {
 
         const HEVFile = await downloadDriveFile(HEV_FOLDER_ID, `${userDoc}_FRAMINGHAM_signed.pdf`)
         if (!HEVFile) {
-            entry.success = false
-            entry.status = 'NOT_FOUND'
-            entry.message = 'HEV no encontrado'
-            continue
+            billData.success = false
+            billData.status = 'NOT_FOUND'
+            billData.message = 'HEV no encontrado'
+            return billData
         }
 
-        entry.message = 'Factura, RIPS & HEV descargados'
-        entry.files.push({
+        billData.message = 'Factura, RIPS & HEV descargados'
+        billData.files.push({
             code: 'HEV',
             name: `HEV_901011395_${bill}.pdf`,
             buffer: HEVFile
         })
-    }
 
-    return billsFiles
+        return billData
+    } catch (err: any) {
+        billData.success = false
+        billData.status = 'ERROR'
+        billData.message = err.message
+
+        return billData
+    }
 }

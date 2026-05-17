@@ -133,8 +133,8 @@ export type StatusScalarFieldEnum = (typeof StatusScalarFieldEnum)[keyof typeof 
 
 export const ExecutionsScalarFieldEnum = {
   id: 'id',
-  ipsId: 'ipsId',
-  epsId: 'epsId',
+  ipsCode: 'ipsCode',
+  epsCode: 'epsCode',
   statusId: 'statusId',
   metadata: 'metadata',
   started_at: 'started_at',
@@ -226,7 +226,9 @@ export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 
 
 export const ExecutionsOrderByRelevanceFieldEnum = {
-  id: 'id'
+  id: 'id',
+  ipsCode: 'ipsCode',
+  epsCode: 'epsCode'
 } as const
 
 export type ExecutionsOrderByRelevanceFieldEnum = (typeof ExecutionsOrderByRelevanceFieldEnum)[keyof typeof ExecutionsOrderByRelevanceFieldEnum]

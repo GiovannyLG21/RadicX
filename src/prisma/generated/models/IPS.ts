@@ -177,7 +177,7 @@ export type IPSGroupByOutputType = {
   id: number
   code: string
   name: string
-  createdAt: Date
+  createdAt: Date | null
   _count: IPSCountAggregateOutputType | null
   _avg: IPSAvgAggregateOutputType | null
   _sum: IPSSumAggregateOutputType | null
@@ -207,7 +207,7 @@ export type IPSWhereInput = {
   id?: Prisma.IntFilter<"IPS"> | number
   code?: Prisma.StringFilter<"IPS"> | string
   name?: Prisma.StringFilter<"IPS"> | string
-  createdAt?: Prisma.DateTimeFilter<"IPS"> | Date | string
+  createdAt?: Prisma.DateTimeNullableFilter<"IPS"> | Date | string | null
   executions?: Prisma.ExecutionsListRelationFilter
 }
 
@@ -215,7 +215,7 @@ export type IPSOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  createdAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrderInput | Prisma.SortOrder
   executions?: Prisma.ExecutionsOrderByRelationAggregateInput
   _relevance?: Prisma.IPSOrderByRelevanceInput
 }
@@ -227,7 +227,7 @@ export type IPSWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.IPSWhereInput | Prisma.IPSWhereInput[]
   OR?: Prisma.IPSWhereInput[]
   NOT?: Prisma.IPSWhereInput | Prisma.IPSWhereInput[]
-  createdAt?: Prisma.DateTimeFilter<"IPS"> | Date | string
+  createdAt?: Prisma.DateTimeNullableFilter<"IPS"> | Date | string | null
   executions?: Prisma.ExecutionsListRelationFilter
 }, "id" | "code" | "name">
 
@@ -235,7 +235,7 @@ export type IPSOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  createdAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.IPSCountOrderByAggregateInput
   _avg?: Prisma.IPSAvgOrderByAggregateInput
   _max?: Prisma.IPSMaxOrderByAggregateInput
@@ -250,13 +250,13 @@ export type IPSScalarWhereWithAggregatesInput = {
   id?: Prisma.IntWithAggregatesFilter<"IPS"> | number
   code?: Prisma.StringWithAggregatesFilter<"IPS"> | string
   name?: Prisma.StringWithAggregatesFilter<"IPS"> | string
-  createdAt?: Prisma.DateTimeWithAggregatesFilter<"IPS"> | Date | string
+  createdAt?: Prisma.DateTimeNullableWithAggregatesFilter<"IPS"> | Date | string | null
 }
 
 export type IPSCreateInput = {
   code: string
   name: string
-  createdAt?: Date | string
+  createdAt?: Date | string | null
   executions?: Prisma.ExecutionsCreateNestedManyWithoutIpsInput
 }
 
@@ -264,14 +264,14 @@ export type IPSUncheckedCreateInput = {
   id?: number
   code: string
   name: string
-  createdAt?: Date | string
+  createdAt?: Date | string | null
   executions?: Prisma.ExecutionsUncheckedCreateNestedManyWithoutIpsInput
 }
 
 export type IPSUpdateInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executions?: Prisma.ExecutionsUpdateManyWithoutIpsNestedInput
 }
 
@@ -279,7 +279,7 @@ export type IPSUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executions?: Prisma.ExecutionsUncheckedUpdateManyWithoutIpsNestedInput
 }
 
@@ -287,20 +287,20 @@ export type IPSCreateManyInput = {
   id?: number
   code: string
   name: string
-  createdAt?: Date | string
+  createdAt?: Date | string | null
 }
 
 export type IPSUpdateManyMutationInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type IPSUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type IPSOrderByRelevanceInput = {
@@ -360,14 +360,14 @@ export type IPSUpdateOneRequiredWithoutExecutionsNestedInput = {
 export type IPSCreateWithoutExecutionsInput = {
   code: string
   name: string
-  createdAt?: Date | string
+  createdAt?: Date | string | null
 }
 
 export type IPSUncheckedCreateWithoutExecutionsInput = {
   id?: number
   code: string
   name: string
-  createdAt?: Date | string
+  createdAt?: Date | string | null
 }
 
 export type IPSCreateOrConnectWithoutExecutionsInput = {
@@ -389,14 +389,14 @@ export type IPSUpdateToOneWithWhereWithoutExecutionsInput = {
 export type IPSUpdateWithoutExecutionsInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type IPSUncheckedUpdateWithoutExecutionsInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 
@@ -463,7 +463,7 @@ export type $IPSPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
     id: number
     code: string
     name: string
-    createdAt: Date
+    createdAt: Date | null
   }, ExtArgs["result"]["iPS"]>
   composites: {}
 }

@@ -1,20 +1,5 @@
-import { getFileType } from './bot.utils';
-import { NextFunction, Request, Response } from 'express'
-import { EPSList } from './config/config'
-import { IPSCodeType } from './bot.types'
-
-export const validateSelectedEPS = (req: Request, res: Response, next: NextFunction) => {
-    const data: IPSCodeType = req.body
-
-    const EPSSelected = EPSList[data.code]
-    if (!EPSSelected) return res.status(404).json({
-        message: 'EPS seleccionada no encontrada',
-        status: 404
-    })
-
-    req.eps = EPSSelected
-    next()
-}
+import { Request, Response, NextFunction } from 'express'
+import { getFileType } from '@/utils/string'
 
 export const validateBillsFile = (req: Request, res: Response, next: NextFunction) => {
     const file = req.file

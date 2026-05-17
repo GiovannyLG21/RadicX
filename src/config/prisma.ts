@@ -19,7 +19,16 @@ const adapter = new PrismaMariaDb({
     connectionLimit: 5
 });
 
-const prisma = new PrismaClient({ adapter })
+const globalForPrisma = global as typeof globalThis & {
+    prisma?: PrismaClient
+}
+
+export const prisma =
+    globalForPrisma.prisma ??
+    new PrismaClient({ adapter })
+
+if (process.env.NODE_ENV !== 'production') {
+    globalForPrisma.prisma = prisma
+}
 
 export default prisma
-

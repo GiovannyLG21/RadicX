@@ -1,10 +1,9 @@
 import { Page } from 'playwright'
 import { CREDENTIALS } from '../config/config'
-import { LoginPage } from '@/modules/Bot/bot.utils'
-import { LoginDataType } from '@/modules/Bot/bot.types'
+import { LoginPage } from '@/Bot/utils'
+import { LoginDataType } from '@/Bot/types'
 
 async function LoginFlow(page: Page) {
-
     const loginData: LoginDataType = {
         sessionSelector: '.o-dropdown.dropdown.o_user_menu',
         userSelector: '#login',
@@ -22,7 +21,7 @@ async function LoginFlow(page: Page) {
 
     await loginPage.login()
     const session = await loginPage.verifySession()
-    if (!session) throw new Error('Error al iniciar sesion')
+    if (!session) throw new Error('Error al iniciar sesion en Odoo')
 }
 
 export default LoginFlow

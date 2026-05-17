@@ -1,5 +1,6 @@
 import prisma from '@/config/prisma'
 import { executionDataType, executionUpdateDataType } from './execution.types'
+import { formatExecutionDate } from '@/utils/dates'
 
 export async function executions() {
     return await prisma.executions.findMany()
@@ -7,21 +8,29 @@ export async function executions() {
 
 export async function getExecution(id: string | undefined) {
     if (!id) return
-    return await prisma.executions.findUnique({
+    const execution = await prisma.executions.findUnique({
         where: {
             id
         }
     })
+    if (execution) {
+        const { started_at, finished_at, ...data } = execution
+        return { ...data, started_at: formatExecutionDate(started_at), finished_at: formatExecutionDate(finished_at) }
+    }
 }
 
 export async function createExecution(data: executionDataType) {
-    const { epsId, ipsId, ...executionData } = data
+    const { epsCode, ipsCode, metadata } = data
     return await prisma.executions.create({
         data: {
-            ipsId: Number(ipsId),
-            epsId: Number(epsId),
+            ipsCode,
+            epsCode,
             statusId: 1,
-            ...executionData
+            metadata,
+            started_at: new Date()
+        },
+        include: {
+            status: true
         }
     })
 }
@@ -34,6 +43,7 @@ export async function finishExecution(id: string | undefined, data: executionUpd
             id
         },
         data: {
+            statusId: 2,
             metadata,
             finished_at: new Date()
         }

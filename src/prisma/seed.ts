@@ -30,6 +30,20 @@ async function main() {
             { name: 'FAILED' }
         ]
     })
+
+    await prisma.iPS.create({
+        data: {
+            code: '901749264',
+            name: 'IPS Horisoes S.A.S'
+        }
+    })
+
+    await prisma.ePS.create({
+        data: {
+            code: 'EPS042',
+            name: 'Coosalud EPS S.A'
+        }
+    })
 }
 
 main()
