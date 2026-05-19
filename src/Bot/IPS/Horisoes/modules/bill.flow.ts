@@ -4,6 +4,7 @@ import { PDFParse } from 'pdf-parse'
 import { Page } from 'playwright'
 import { getFileType } from '@/utils/string'
 import { BillDataType, BillStatusType } from '@/Bot/types'
+import { formatError } from '@/Bot/utils'
 
 class BillPage {
     success: boolean
@@ -35,10 +36,7 @@ class BillPage {
             await searchBox.press('Enter')
             const searchResult = this.page.locator(`.o_list_table tbody tr td[data-tooltip="${bill}"]`)
             // Bill not found: return        
-            const existsBill = await searchResult.waitFor({
-                state: 'visible',
-                timeout: 5000
-            }).then(() => true).catch(() => false)
+            const existsBill = await searchResult.waitFor({ state: 'visible' }).then(() => true).catch(() => false)
             if (!existsBill) {
                 this.success = false
                 this.status = 'NOT_FOUND'
@@ -49,17 +47,18 @@ class BillPage {
             await searchResult.click()
 
             // Wait download
-            const downloadPromise = this.page.waitForEvent('download')
-            await this.page.locator('.o_AttachmentCard_asideItemDownload').click()
-            //* Zip
-            const download = await downloadPromise
+            const [download] = await Promise.all([
+                this.page.waitForEvent('download'),
+                this.page.locator('.o_AttachmentCard_asideItemDownload').click()
+            ])
+            //* Zip            
             const downloadPath = await download.path()
             const downloadBuffer = fs.readFileSync(downloadPath)
             return downloadBuffer
         } catch (err: any) {
             this.success = false
             this.status = 'ERROR'
-            this.message = err.message
+            this.message = `Error al descargar factura: ${formatError(err.message)}`
             return
         }
     }
@@ -97,7 +96,7 @@ class BillPage {
         } catch (err: any) {
             this.success = false
             this.status = 'ERROR'
-            this.message = err.message
+            this.message = `Error al descomprimir archivos de la factura: ${formatError(err.message)}`
             return
         }
     }
@@ -120,7 +119,7 @@ class BillPage {
         } catch (err: any) {
             this.success = false
             this.status = 'ERROR'
-            this.message = err.message
+            this.message = `Error al obtener el contrato: ${formatError(err.message)}`
             return
         }
     }

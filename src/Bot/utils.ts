@@ -1,16 +1,18 @@
 import { Page, BrowserContext } from 'playwright'
 import { LoginDataType } from './types'
+import util from 'node:util'
 
 //* Playwright
 export class LoginPage {
     constructor(
+        private context: BrowserContext,
         private page: Page,
         private data: LoginDataType
     ) { }
 
     async verifySession() {
         return await this.page.locator(this.data.sessionSelector)
-            .waitFor({ state: 'visible', timeout: 5000 })
+            .waitFor({ state: 'visible', timeout: 8000 })
             .then(() => true)
             .catch(() => false)
     }
@@ -22,6 +24,9 @@ export class LoginPage {
         await this.page.locator(this.data.passwordSelector).fill(this.data.credentials.password)
         //Button
         await this.page.click(this.data.buttonSelector)
+        this.context.storageState({
+            path: 'playwright-data/session.json'
+        })
     }
 }
 
@@ -35,4 +40,8 @@ export async function delay(ms: number) {
     return new Promise(resolve =>
         setTimeout(resolve, ms)
     )
+}
+
+export function formatError(error: any) {
+    return util.stripVTControlCharacters(error)
 }

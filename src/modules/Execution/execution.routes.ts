@@ -17,5 +17,10 @@ router.route('/:id')
     .get(executionController.getExecution)
     .put(validateScheme(executionUpdateScheme),
         executionController.finishExecution)
+        
+router.route('/metadata/:id')
+    .get(executionController.createMetadata)
+
+router.post('/processed', executionController.getProcessed)
 
 export default router

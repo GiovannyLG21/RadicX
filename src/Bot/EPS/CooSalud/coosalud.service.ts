@@ -1,10 +1,11 @@
 import Client from 'ssh2-sftp-client'
 import { SFTP_CREDENTIALS } from '../CooSalud/config/config'
-import { BillDataType, RadicacionCodesType } from '../../types'
+import { BillDataType } from '../../types'
+import util from 'node:util'
+import { formatError } from '@/Bot/utils'
 
-export async function sftpUpload(radicacionCodes: RadicacionCodesType | undefined, billData: BillDataType) {
-    if (!radicacionCodes || !radicacionCodes.length) return
-    console.log(radicacionCodes)
+export async function sftpUpload(billData: BillDataType) {
+    if (!billData.success || !billData.radicado) return billData
     const sftp = new Client()
     try {
         await sftp.connect({
@@ -14,9 +15,8 @@ export async function sftpUpload(radicacionCodes: RadicacionCodesType | undefine
             password: SFTP_CREDENTIALS.password
         })
 
-        if (!billData.success) return
-        const radicacionCode = radicacionCodes.find(radicacion => radicacion.contract == billData.contract)!.code
         const bill = billData.bill
+        const radicacionCode = billData.radicado
         const IMGFiles = billData.files.filter(file => file.code == 'XML' || file.code == 'FEV' || file.code == 'HEV')
         const RIPSFiles = billData.files.filter(file => file.code == 'CUV' || file.code == 'RIPS')
 
@@ -31,10 +31,62 @@ export async function sftpUpload(radicacionCodes: RadicacionCodesType | undefine
         }
 
         billData.message = 'Factura, RIPS & HEV cargados en sftp'
-    } catch (error) {
-        console.error(error)
-        return
+        return billData
+    } catch (err: any) {
+        await sftp.end()
+        console.error(err.message)
+        billData.success = false
+        billData.status = 'SFTP_ERROR'
+        billData.message = `Error al cargar archivos en sftp: ${formatError(err.message)}`
+        return billData
     } finally {
         await sftp.end()
+    }
+}
+
+export async function getSftpFiles(radicado: string | undefined) {
+    if (!radicado) return
+    const sftp = new Client()
+    try {
+        await sftp.connect({
+            host: 'vco.ctamedicas.com',
+            port: 22,
+            username: SFTP_CREDENTIALS.user,
+            password: SFTP_CREDENTIALS.password
+        })
+
+        const radicadoFolders = await sftp.list(`/${radicado}/IMG`)
+
+        return radicadoFolders.map(folder => folder.name)
+    } catch (err: any) {
+        console.error(err.message)
+        return
+    } finally {
+        sftp.end()
+    }
+}
+
+export async function getAllSftpFiles(radicados: string[]) {
+    const sftp = new Client()
+    try {
+        await sftp.connect({
+            host: 'vco.ctamedicas.com',
+            port: 22,
+            username: SFTP_CREDENTIALS.user,
+            password: SFTP_CREDENTIALS.password
+        })
+
+        const processedBills = await Promise.all(
+            radicados.map(async radicado => {
+                return (await (sftp.list(`/${radicado}/IMG`))).map(folder => folder.name)
+            })
+        )
+
+        return processedBills.flat(1)
+    } catch (err: any) {
+        console.error(err.message)
+        return
+    } finally {
+        sftp.end()
     }
 }

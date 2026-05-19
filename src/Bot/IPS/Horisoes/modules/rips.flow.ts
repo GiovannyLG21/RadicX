@@ -3,6 +3,7 @@ import AdmZip from 'adm-zip'
 import { Page } from 'playwright'
 import { BillDataType, BillStatusType } from '@/Bot/types'
 import { formatDate } from '@/utils/dates'
+import { formatError } from '@/Bot/utils'
 
 class RIPSPage {
     success: boolean
@@ -61,12 +62,15 @@ class RIPSPage {
             await searchResult.click()
             // Export
             await exportButton.click()
-            // Wait download
             await downloadButton.waitFor()
-            const downloadCUVPromise = this.page.waitForEvent('download')
-            await downloadButton.click()
-            //* Zip
-            const CUVDownload = await downloadCUVPromise
+
+            // Wait download
+            const [CUVDownload] = await Promise.all([
+                this.page.waitForEvent('download'),
+                downloadButton.click()
+            ])
+
+            //* Zip            
             const CUVDownloadPath = await CUVDownload.path()
             const CUVZipBuffer = fs.readFileSync(CUVDownloadPath)
 
@@ -79,12 +83,13 @@ class RIPSPage {
             await downloadButton.evaluate(element => element.remove())
             // Export
             await exportButton.click()
-            // Wait download
             await downloadButton.waitFor()
-            const downloadRIPSPromise = this.page.waitForEvent('download')
-            await downloadButton.click()
-            //* Zip
-            const RIPSDownload = await downloadRIPSPromise
+            // Wait download
+            const [RIPSDownload] = await Promise.all([
+                this.page.waitForEvent('download'),
+                downloadButton.click()
+            ])
+            //* Zip            
             const RIPSDownloadPath = await RIPSDownload.path()
             const RIPSZipBuffer = fs.readFileSync(RIPSDownloadPath)
 
@@ -105,7 +110,7 @@ class RIPSPage {
         } catch (err: any) {
             this.success = false
             this.status = 'ERROR'
-            this.message = err.message
+            this.message = `Error al descargar RIPS: ${formatError(err.message)}`
             return
         }
     }
@@ -133,7 +138,7 @@ class RIPSPage {
         } catch (err: any) {
             this.success = false
             this.status = 'ERROR'
-            this.message = err.message
+            this.message = `Error al descomprimir RIPS: ${formatError(err.message)}`
             return
         }
     }

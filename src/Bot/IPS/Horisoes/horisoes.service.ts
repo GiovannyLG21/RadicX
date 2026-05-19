@@ -1,6 +1,7 @@
 import drive from '@/Bot/config/googleapis'
 import { HEV_FOLDER_ID } from './config/config'
 import { BillDataType } from '@/Bot/types'
+import { formatError } from '@/Bot/utils'
 
 // export async function getRadicadoByCode(code: string) {
 //     return await prisma.radicados.findFirst({
@@ -85,7 +86,7 @@ export async function getHEVFiles(billData: BillDataType) {
     } catch (err: any) {
         billData.success = false
         billData.status = 'ERROR'
-        billData.message = err.message
+        billData.message = `Error al descargar HEV: ${formatError(err.message)}`
 
         return billData
     }

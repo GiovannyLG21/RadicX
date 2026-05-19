@@ -3,10 +3,12 @@ import { asyncHandler } from '@/middlewares'
 import { EPSBots, IPSBots } from '@/Bot/config/config'
 import * as IPSService from '@/modules/IPS/ips.service'
 import * as EPSService from '@/modules/EPS/eps.service'
+import * as coosaludService from '@/Bot/EPS/CooSalud/coosalud.service'
 import * as executionService from './execution.service'
 import { BillsCodesType, executionDataType, executionUpdateDataType } from './execution.types'
 import { playwrightQueue } from '@/Bot/config/queues'
 import { BulkJobOptions } from 'bullmq';
+import { JobDataType } from '@/Bot/types';
 
 export const executions = asyncHandler(async (_req, res) => {
     const allExecutions = await executionService.executions()
@@ -68,7 +70,7 @@ export const createExecution = asyncHandler(async (req, res) => {
     //* Bills
     const billsFormat: {
         name: string;
-        data: any;
+        data: JobDataType;
         opts?: BulkJobOptions;
     }[] = bills.map((bill, index) => ({
         name: `process-bill-${bill}`,
@@ -79,18 +81,21 @@ export const createExecution = asyncHandler(async (req, res) => {
             epsCode
         },
         opts: {
-            jobId: `${index + 1} ${bill}`,
+            jobId: `${index + 1}_${bill}`,
             attempts: 3,
             backoff: {
                 type: 'fixed',
                 delay: 2000
             },
-            removeOnComplete: true,
-            removeOnFail: true
+            removeOnComplete: false,
+            removeOnFail: false
         }
     }))
 
-    await playwrightQueue.obliterate({ force: true })
+    // Clean previous processed jobs
+    await playwrightQueue.clean(0, 5000, 'completed')
+    await playwrightQueue.clean(0, 5000, 'failed')
+
     //* Add to Queue
     await playwrightQueue.addBulk(billsFormat)
 
@@ -125,5 +130,49 @@ export const finishExecution = asyncHandler(async (req, res) => {
     return res.json({
         message: `Ejecucion finalizada exitosamente: ${id} - ${execution?.finished_at}`,
         status: 200
+    })
+})
+
+export const createMetadata = asyncHandler(async (req, res) => {
+    const { id } = req.params
+
+    const radicadoFiles = await coosaludService.getSftpFiles(id)
+    if (!radicadoFiles) return res.status(400).json({
+        message: 'Ha habido un error al obtener la carpeta',
+        status: 400
+    })
+
+    const metadata: executionUpdateDataType["metadata"] = {
+        total_facturas: 0,
+        total_radicadas: radicadoFiles.length,
+        total_fallidas: 0,
+        pre_radicados: [
+            {
+                codigo: '',
+                contrato: 'Subsidiado',
+                facturas: radicadoFiles,
+                cantidad_facturas: radicadoFiles.length
+            }
+        ],
+        fallidas: {
+            codigos: [],
+            facturas: []
+        }
+    }
+
+    return res.json({
+        message: 'Metadata created',
+        data: metadata,
+        status: 200
+    })
+})
+
+export const getProcessed = asyncHandler(async (req, res) => {
+    const { radicados } = req.body
+    const processedBills = await coosaludService.getAllSftpFiles(radicados)
+
+    return res.json({
+        total: processedBills?.length,
+        processedBills,
     })
 })

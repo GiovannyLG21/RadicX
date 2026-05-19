@@ -1,9 +1,9 @@
-import z from 'zod'
-import { BrowserContext } from 'playwright'
+import { Page } from 'playwright'
 
 //* Bot Types
-export type IPSBotType = (context: BrowserContext, bill: string) => Promise<BillDataType>
-export type EPSBotType = (context: BrowserContext, bill: string, radicacionCodes: RadicacionCodesType) => Promise<RadicacionCodesType | undefined>
+export type IPSBotType = (page: Page, bill: string) => Promise<BillDataType>
+export type EPSBotType = (page: Page, bill: string, radicacionCodes: RadicacionCodesType) => Promise<BillDataType>
+
 
 //* Worker Types
 export type JobDataType = {
@@ -13,6 +13,7 @@ export type JobDataType = {
     epsCode: string
 }
 
+
 //* Bill Status Type
 export type BillInfoType = {
     success: boolean,
@@ -21,18 +22,23 @@ export type BillInfoType = {
 }
 
 export type BillStatusType =
-    | 'SUCCESS'
+    | 'LOGIN_FAILED'
     | 'NOT_FOUND'
-    | 'TIMEOUT'
     | 'CONTRACT_NOT_FOUND'
+    | 'CREATE_RADICACION_FAILED'
+    | 'GET_RADICACION_FAILED'
+    | 'SFTP_ERROR'
     | 'ERROR'
+    | 'SUCCESS'
     | null
+
 
 //* Bill Data Type
 export type BillDataType = BaseBillDataType & BillInfoType
 
 type BaseBillDataType = {
     bill: string,
+    radicado?: string,
     contract: 'Contributivo' | 'Subsidiado' | null,
     files: {
         code: 'FEV' | 'XML' | 'CUV' | 'RIPS' | 'HEV'
@@ -54,17 +60,9 @@ export type LoginDataType = {
     }
 }
 
-export type ProcessedBillType = (Omit<
-    BillDataType,
-    'files'
-> & {
-    files: Omit<
-        BillDataType['files'][number],
-        'buffer'
-    >[]
-})
+export type ProcessedBillType = Omit<BillDataType, 'files'>
 
 export type RadicacionCodesType = {
     contract: 'Contributivo' | 'Subsidiado',
     code: string
-}[] | undefined
+}[]

@@ -29,9 +29,33 @@ export function formatExecutionDate(date: Date | null): string {
     const day = String(date.getDate()).padStart(2, '0')
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const year = date.getFullYear()
-    const hours = date.getHours()
-    const minutes = date.getMinutes()
-    const seconds = date.getSeconds()
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
 
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
+export function getDateTimeDiff(startDate: Date | null, finishDate: Date | null) {
+    if (!startDate || !finishDate) return ''
+
+    const msDiff = finishDate.getTime() - startDate.getTime()
+    const hoursDiff = Number((msDiff / (1000 * 60 * 60)).toFixed(4))
+    const minutesDiff = Math.abs(hoursDiff % 1) * 60
+    const secondsDiff = Math.abs(minutesDiff % 1) * 60
+
+    let hours = Math.trunc(hoursDiff)
+    let minutes = Math.trunc(minutesDiff)
+    let seconds = Math.round(secondsDiff)
+
+    if (minutes == 60) {
+        minutes = 0
+        hours++
+    }
+    if (seconds == 60) {
+        seconds = 0
+        minutes++
+    }
+
+    return `${String(hours).padStart(2, '0')}h:${String(minutes).padStart(2, '0')}m:${String(seconds).padStart(2, '0')}s`
 }

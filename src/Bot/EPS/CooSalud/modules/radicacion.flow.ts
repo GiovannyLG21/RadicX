@@ -1,6 +1,6 @@
 import { Page } from 'playwright'
 import { CONTRACTS } from '../config/config'
-import { delay } from '@/Bot/utils'
+import { delay, formatError } from '@/Bot/utils'
 import { BillDataType, BillStatusType } from '@/Bot/types'
 
 class RadicacionPage {
@@ -12,7 +12,7 @@ class RadicacionPage {
         private page: Page
     ) {
         this.success = false
-        this.status = null
+        this.status = 'ERROR'
         this.message = ''
     }
 
@@ -35,8 +35,8 @@ class RadicacionPage {
             return 'Radicacion created'
         } catch (err: any) {
             this.success = false
-            this.status = 'ERROR'
-            this.message = err.message
+            this.status = 'CREATE_RADICACION_FAILED'
+            this.message = `Error al crear la radicacion: ${formatError(err.message)}`
             return
         }
     }
@@ -53,13 +53,13 @@ class RadicacionPage {
             return codeRadication.trim()
         } catch (err: any) {
             this.success = false
-            this.status = 'ERROR'
-            this.message = err.message
+            this.status = 'GET_RADICACION_FAILED'
+            this.message = `Error al obtener la radicacion: ${formatError(err.message)}`
             return
         }
     }
 
-    failedBill(billData: BillDataType) {
+    failBill(billData: BillDataType) {
         billData.success = this.success
         billData.status = this.status
         billData.message = this.message
@@ -69,18 +69,21 @@ class RadicacionPage {
 
 async function radicacionFlow(page: Page, billData: BillDataType) {
     const radicacionPage = new RadicacionPage(page)
-    if (!billData.contract) return
+    if (!billData.contract) {
+        billData.success = false
+        billData.status = 'CONTRACT_NOT_FOUND'
+        billData.message = 'Contrato no encontrado'
+        return billData
+    }
 
     const createRadicacion = await radicacionPage.createRadicacion(billData.contract)
-    if (!createRadicacion) return
+    if (!createRadicacion) return radicacionPage.failBill(billData)
 
     const radicacionCode = await radicacionPage.getRadicacionCode()
-    if (!radicacionCode) return
+    if (!radicacionCode) return radicacionPage.failBill(billData)
 
-    return {
-        code: radicacionCode,
-        contract: billData.contract
-    }
+    billData.radicado = radicacionCode
+    return billData
 }
 
 export default radicacionFlow
