@@ -1,8 +1,11 @@
 import fs from 'fs'
-import { chromium, Browser } from 'playwright'
+import { Browser } from 'playwright'
+import { chromium } from 'playwright-extra'
 import { DEFAULT_TIMEOUT, HEADLESS_BROWSER, NAVIGATION_TIMEOUT, SLOWMO_BROWSER } from './config/config'
+import StealthPlugin from "puppeteer-extra-plugin-stealth"
 
 export async function execPlaywright() {
+    chromium.use(StealthPlugin())
     const browser = await chromium.launch({
         headless: HEADLESS_BROWSER,
         slowMo: SLOWMO_BROWSER,
@@ -20,7 +23,7 @@ export async function newContext(browser: Browser) {
         }
     )
     context.setDefaultNavigationTimeout(NAVIGATION_TIMEOUT)
-    context.setDefaultTimeout(DEFAULT_TIMEOUT)    
+    context.setDefaultTimeout(DEFAULT_TIMEOUT)
     return context
 }
 

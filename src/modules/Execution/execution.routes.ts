@@ -23,4 +23,6 @@ router.route('/metadata/:id')
 
 router.post('/processed', executionController.getProcessed)
 
+router.get('/bot/nuevaeps', executionController.NuevaEPS)
+
 export default router

@@ -9,6 +9,7 @@ import { BillsCodesType, executionDataType, executionUpdateDataType } from './ex
 import { playwrightQueue } from '@/Bot/config/queues'
 import { BulkJobOptions } from 'bullmq';
 import { JobDataType } from '@/Bot/types';
+import NuevaEPSBot from '@/Bot/EPS/NuevaEPS'
 
 export const executions = asyncHandler(async (_req, res) => {
     const allExecutions = await executionService.executions()
@@ -170,9 +171,27 @@ export const createMetadata = asyncHandler(async (req, res) => {
 export const getProcessed = asyncHandler(async (req, res) => {
     const { radicados } = req.body
     const processedBills = await coosaludService.getAllSftpFiles(radicados)
+    const executionsMetadata = (await executionService.executions()).map(execution => JSON.stringify(execution.metadata))
+
+    const totalRadicadas = processedBills?.map(radicado => radicado.total_facturas).reduce((acc, currentValue) => acc + currentValue)
+    const totalProcesadas = executionsMetadata.map(metadata => JSON.parse(metadata)?.total_facturas).reduce((acc, currentValue) => acc + currentValue)
+    const totalFallidasCant = executionsMetadata.map(metadata => JSON.parse(metadata)?.total_fallidas).reduce((acc, currentValue) => acc + currentValue)
+    const facturasFallidas = executionsMetadata.map(metadata => JSON.parse(metadata)?.fallidas?.codigos).flat(1)
 
     return res.json({
-        total: processedBills?.length,
+        total_procesadas: totalProcesadas,
+        total_radicadas: totalRadicadas,
+        total_fallidas: totalFallidasCant,
+        fallidas: facturasFallidas,
         processedBills,
+    })
+})
+
+export const NuevaEPS = asyncHandler(async (req, res) => {
+
+    await NuevaEPSBot()
+
+    return res.json({
+        message: 'Bot ejecutado'
     })
 })

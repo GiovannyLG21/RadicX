@@ -78,11 +78,16 @@ export async function getAllSftpFiles(radicados: string[]) {
 
         const processedBills = await Promise.all(
             radicados.map(async radicado => {
-                return (await (sftp.list(`/${radicado}/IMG`))).map(folder => folder.name)
+                const folders = (await (sftp.list(`/${radicado}/IMG`))).map(folder => folder.name)
+                return {
+                    radicado,
+                    total_facturas: folders.length,
+                    facturas: folders
+                }
             })
         )
 
-        return processedBills.flat(1)
+        return processedBills
     } catch (err: any) {
         console.error(err.message)
         return
