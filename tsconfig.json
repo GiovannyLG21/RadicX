@@ -31,13 +31,9 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force"
   },
-  "ts-node": {
-    "files": true
-  },
   "include": [
     "src",
-    "test",
-    "src/Bot/utils.ts"
+    "test"
   ],
   "exclude": [
     "node_modules",

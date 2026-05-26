@@ -1,9 +1,9 @@
-import Router from 'express'
+import { Router } from 'express'
+import * as EPSController from './eps.controller'
 import { validateScheme } from '@/middlewares'
 import EPSScheme from './eps.scheme'
-import * as EPSController from './eps.controller'
 
-const router = Router()
+const router: Router = Router()
 
 router.route('/')
     .get(EPSController.EPS)

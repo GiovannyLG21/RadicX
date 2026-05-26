@@ -1,6 +1,6 @@
+import * as IPSService from './ips.service'
 import { asyncHandler } from '@/middlewares'
 import { IPSDataType } from './ips.types'
-import * as IPSService from './ips.service'
 
 
 export const IPS = asyncHandler(async (_req, res) => {

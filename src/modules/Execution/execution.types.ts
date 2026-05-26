@@ -3,5 +3,7 @@ import { executionScheme, executionUpdateScheme } from './execution.scheme'
 
 export type executionDataType = z.infer<typeof executionScheme>
 export type executionUpdateDataType = z.infer<typeof executionUpdateScheme>
+export type GetRadicadosDataType = Omit<executionDataType, 'metadata'>
+export type ExecutionMetadataType = executionUpdateDataType['metadata']
 
 export type BillsCodesType = string[]

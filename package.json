@@ -33,7 +33,6 @@
     "prisma": "^7.8.0",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.9",
-    "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.22.2",
     "typescript": "^6.0.3"
@@ -41,7 +40,6 @@
   "dependencies": {
     "@bull-board/api": "^7.1.5",
     "@bull-board/express": "^7.1.5",
-    "@google-cloud/local-auth": "^3.0.1",
     "@prisma/adapter-mariadb": "^7.6.0",
     "@prisma/client": "^7.1.0",
     "adm-zip": "^0.5.17",
@@ -51,6 +49,7 @@
     "cors": "^2.8.5",
     "cross-env": "^10.1.0",
     "dotenv": "^17.2.3",
+    "exceljs": "^4.4.0",
     "express": "^5.1.0",
     "googleapis": "^171.4.0",
     "ioredis": "^5.10.1",

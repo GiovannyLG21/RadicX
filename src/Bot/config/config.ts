@@ -1,29 +1,21 @@
 import IORedis from 'ioredis'
-import HorisoesBot from '@/Bot/IPS/Horisoes/index'
-import CooSaludBot from '@/Bot/EPS/CooSalud/index'
+import { HorisoesCoosaludInitiator } from '../Workflows/horisoes-coosalud.workflow'
 
 //* Redis Connection
 export const REDIS_CONNECTION = new IORedis({ maxRetriesPerRequest: null })
 
 //* Playwright config
-export const HEADLESS_BROWSER = false
-export const SLOWMO_BROWSER = 500
+export const HEADLESS_BROWSER = true
+export const SLOWMO_BROWSER = 10
 export const DEFAULT_TIMEOUT = 30000
 export const NAVIGATION_TIMEOUT = 30000
 
-//* IPS Bots
-export const IPSBots = [
+//* Workflows
+export const Workflows = [
     {
-        code: '901749264',
-        bot: HorisoesBot,
-        AvailableEPS: ['EPS042']
-    }
-]
-
-//* EPS Bots
-export const EPSBots = [
-    {
-        code: 'EPS042',
-        bot: CooSaludBot
+        name: 'Horisoes_Coosalud_Workflow',
+        ipsCode: '901749264',
+        epsCode: 'EPS042',
+        initiator: HorisoesCoosaludInitiator
     }
 ]

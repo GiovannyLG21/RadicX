@@ -3,7 +3,7 @@ import * as userController from './user.controller'
 import { validateScheme } from '@/middlewares'
 import userScheme from './user.scheme'
 
-const router = Router()
+const router: Router = Router()
 
 router.route('/')
     .get(userController.users)

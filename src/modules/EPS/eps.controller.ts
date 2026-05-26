@@ -1,6 +1,6 @@
+import * as EPSService from './eps.service'
 import { asyncHandler } from '@/middlewares'
 import { EPSDataType } from './eps.types'
-import * as EPSService from './eps.service'
 
 
 export const EPS = asyncHandler(async (_req, res) => {

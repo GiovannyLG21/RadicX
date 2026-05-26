@@ -3,23 +3,25 @@ import AdmZip from 'adm-zip'
 import { PDFParse } from 'pdf-parse'
 import { Page } from 'playwright'
 import { getFileType } from '@/utils/string'
-import { BillDataType, BillStatusType } from '@/Bot/types'
+import { BillStatusType } from '@/Bot/types'
 import { formatError } from '@/Bot/utils'
 
-class BillPage {
-    success: boolean
-    status: BillStatusType
-    message: string
+class BillFlow {
+    public success: boolean
+    public status: BillStatusType
+    public message: string
 
     constructor(
-        private page: Page
+        private page: Page,
+        private bill: string
     ) {
         this.success = false
         this.status = null
         this.message = ''
     }
 
-    async downloadFiles(bill: string) {
+    async downloadFiles() {
+        const bill = this.bill
         try {
             //* Section
             // Section 'Salud'
@@ -39,7 +41,7 @@ class BillPage {
             const existsBill = await searchResult.waitFor({ state: 'visible' }).then(() => true).catch(() => false)
             if (!existsBill) {
                 this.success = false
-                this.status = 'NOT_FOUND'
+                this.status = 'ERROR'
                 this.message = 'Factura no encontrada'
                 return
             }
@@ -63,7 +65,8 @@ class BillPage {
         }
     }
 
-    async getFiles(zipBuffer: NonSharedBuffer, bill: string) {
+    async getFiles(zipBuffer: Buffer<ArrayBufferLike>) {
+        const bill = this.bill
         try {
             const billZipFile = new AdmZip(zipBuffer).getEntries()
             const billFiles = []
@@ -123,42 +126,6 @@ class BillPage {
             return
         }
     }
-
-    failedBill(bill: string) {
-        return {
-            bill,
-            contract: null,
-            success: this.success,
-            status: this.status,
-            message: this.message,
-            files: []
-        }
-    }
-}
-
-async function BillFlow(page: Page, bill: string) {
-    const billPage = new BillPage(page)
-
-    const zipBuffer = await billPage.downloadFiles(bill)
-    if (!zipBuffer) return billPage.failedBill(bill)
-
-    const billFiles = await billPage.getFiles(zipBuffer, bill)
-    if (!billFiles) return billPage.failedBill(bill)
-
-    const FEVFileBuffer = billFiles.find(file => file.code == 'FEV')!.buffer
-    const billContract = await billPage.getContract(FEVFileBuffer)
-    if (!billContract) return billPage.failedBill(bill)
-
-    const billData: BillDataType = {
-        bill,
-        contract: billContract,
-        success: true,
-        status: 'SUCCESS',
-        message: 'Factura descargada',
-        files: billFiles
-    }
-
-    return billData
 }
 
 export default BillFlow

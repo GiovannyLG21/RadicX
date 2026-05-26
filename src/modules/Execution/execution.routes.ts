@@ -1,10 +1,14 @@
-import Router from 'express'
+import { Router } from 'express'
 import { upload, validateScheme } from '@/middlewares'
 import { executionScheme, executionUpdateScheme } from './execution.scheme'
 import * as executionController from './execution.controller'
 import { validateBillsFile } from './execution.middleware'
 
-const router = Router()
+const router: Router = Router()
+
+router.get('/test', executionController.Test)
+
+router.post('/radicados', executionController.getCreatedRadicados)
 
 router.route('/')
     .get(executionController.executions)
@@ -15,14 +19,9 @@ router.route('/')
 
 router.route('/:id')
     .get(executionController.getExecution)
-    .put(validateScheme(executionUpdateScheme),
-        executionController.finishExecution)
-        
-router.route('/metadata/:id')
-    .get(executionController.createMetadata)
 
-router.post('/processed', executionController.getProcessed)
+router.get('/radicado/:code', executionController.getRadicadoBills)
 
-router.get('/bot/nuevaeps', executionController.NuevaEPS)
+router.post('/processed', executionController.getAllProcessed)
 
 export default router

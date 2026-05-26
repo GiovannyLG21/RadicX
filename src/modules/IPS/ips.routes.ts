@@ -1,9 +1,9 @@
-import Router from 'express'
+import {Router} from 'express'
+import * as IPSController from './ips.controller'
 import { validateScheme } from '@/middlewares'
 import IPSScheme from './ips.scheme'
-import * as IPSController from './ips.controller'
 
-const router = Router()
+const router: Router = Router()
 
 router.route('/')
     .get(IPSController.IPS)

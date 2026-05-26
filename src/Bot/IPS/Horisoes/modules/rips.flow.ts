@@ -1,27 +1,28 @@
 import fs from 'fs'
 import AdmZip from 'adm-zip'
 import { Page } from 'playwright'
-import { BillDataType, BillStatusType } from '@/Bot/types'
+import { BillStatusType } from '@/Bot/types'
 import { formatDate } from '@/utils/dates'
 import { formatError } from '@/Bot/utils'
 
-class RIPSPage {
-    success: boolean
-    status: BillStatusType
-    message: string
+class RIPSFlow {
+    public success: boolean
+    public status: BillStatusType
+    public message: string
 
     constructor(
-        private page: Page
+        private page: Page,
+        private bill: string
     ) {
         this.success = false
         this.status = null
         this.message = ''
     }
 
-    async downloadFiles(bill: string): Promise<{ code: 'RIPS' | 'CUV', buffer: NonSharedBuffer }[] | undefined> {
+    async downloadFiles(): Promise<{ code: 'RIPS' | 'CUV', buffer: Buffer<ArrayBufferLike> }[] | undefined> {
+        const bill = this.bill
+        const actualDate = formatDate(new Date())
         try {
-            const actualDate = formatDate(new Date())
-
             //* Section
             // Dropdown 'Facturacion'
             await this.page.click('.dropdown-toggle[title="Facturacion"]')
@@ -115,7 +116,7 @@ class RIPSPage {
         }
     }
 
-    async getFiles(zipBufferFiles: { code: 'RIPS' | 'CUV', buffer: NonSharedBuffer }[], bill: string) {
+    async getFiles(zipBufferFiles: { code: 'RIPS' | 'CUV', buffer: Buffer<ArrayBufferLike> }[], bill: string) {
         try {
             const billFiles = []
             for (const entry of zipBufferFiles) {
@@ -142,30 +143,6 @@ class RIPSPage {
             return
         }
     }
-
-    failedBill(bill: BillDataType) {
-        bill.success = this.success
-        bill.status = this.status
-        bill.message = this.message
-        return bill
-    }
-}
-
-async function RIPSFlow(page: Page, billData: BillDataType) {
-    if (!billData.success) return billData
-    const ripsPage = new RIPSPage(page)
-    const bill = billData.bill
-
-    const zipBufferFiles = await ripsPage.downloadFiles(bill)
-    if (!zipBufferFiles) return ripsPage.failedBill(billData)
-
-    const RIPSFiles = await ripsPage.getFiles(zipBufferFiles, bill)
-    if (!RIPSFiles) return ripsPage.failedBill(billData)
-
-    for (const file of RIPSFiles) billData.files.push(file)
-    billData.message = 'Factura & RIPS descargados'
-
-    return billData
 }
 
 export default RIPSFlow

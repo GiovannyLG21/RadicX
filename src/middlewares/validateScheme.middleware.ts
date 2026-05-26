@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import { z, ZodObject } from 'zod'
 
-
 const validateScheme = (scheme: ZodObject) => (req: Request, res: Response, next: NextFunction) => {
     const body = req.body
     try {

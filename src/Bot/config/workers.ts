@@ -1,162 +1,179 @@
 import { UnrecoverableError, Worker } from 'bullmq'
-import { playwrightQueue } from './queues'
-import { Browser, BrowserContext } from 'playwright'
+import { Browser } from 'playwright'
+import { REDIS_CONNECTION } from './config'
 import { execPlaywright, newContext } from '../index'
-import { EPSBots, IPSBots, REDIS_CONNECTION } from './config'
+import { playwrightQueue } from './queues'
 import * as executionService from '@/modules/Execution/execution.service'
-import { BillDataType, JobDataType, ProcessedBillType, RadicacionCodesType } from '../types'
+import { getDataFromEntries } from '@/utils/objects'
+import { JobDataType, ProcessedBillType, RadicacionCodesType } from '../types'
+import { HorisoesCoosaludWorkflow } from '../Workflows/horisoes-coosalud.workflow'
+import CooSaludBot from '../EPS/CooSalud'
+import HorisoesBot from '../IPS/Horisoes'
 
-console.log('Worker running')
+console.log('\nWorkers running')
+console.log('==================================================')
 
-//==================================================================
 //* Globals
-
 let browser: Browser
-let context: BrowserContext
-let radicacionCodes: RadicacionCodesType = [
-    {
-        code: '510521_20260519_025315',
-        contract: 'Subsidiado'
-    },
-    {
-        code: '510342_20260517_014214',
-        contract: 'Contributivo'
-    }
-]
-let jobsCount = 0
-let executionId = ''
-
 async function browserManager() {
     browser = await execPlaywright()
-    context = await newContext(browser)
 }
-
+browserManager()
 
 //==================================================================
-//* Main
 
-console.log('\nRadicacion Codes: ', radicacionCodes)
-console.log('Jobs count: ', jobsCount)
-console.log('Execution Id: ', executionId, Boolean(executionId))
-
-const playwrightWorker = new Worker('playwright-execution',
-    async (job) => {
-        console.log('\n=============================================')
-        console.log(`\nJob ${job.id} inicializado`)
-        jobsCount++
-
-        //? Initialization  
-        if (!browser || !browser.isConnected()) {
-            await browserManager()
-        }
-        
-        if (jobsCount >= 50) {
-            await context.close()
-            context = await newContext(browser)
-            jobsCount = 0
-        }
-
-        //? Execution
-        const { execution, bill, ipsCode, epsCode }: JobDataType = job.data
-        let billData: BillDataType
-        if (!executionId) executionId = execution
-
-        const IPSBot = IPSBots.find(IPS => IPS.code === ipsCode)!.bot
-        const EPSBot = EPSBots.find(EPS => EPS.code === epsCode)!.bot
-
-        const page = await context.newPage()
-        billData = await IPSBot(context, page, bill)
-        billData = await EPSBot(context, page, billData, radicacionCodes)
-        await page.close()
-
-        if (billData.success && billData.contract && billData?.radicado) {
-            const existsRadicado = radicacionCodes.find(radicado => radicado.code == billData.radicado)
-            if (!existsRadicado) radicacionCodes.push({ code: billData.radicado, contract: billData.contract })
-        }
-
-        //? Return
-        const { files, ...processedBillData } = billData
-        const processedBill: ProcessedBillType = processedBillData
-
-        if (billData.status != 'SUCCESS') {
-            await job.updateData({
-                ...job.data,
-                failedBill: processedBill
+async function FlowWorker() {
+    //? Main
+    const getFailedBills = async (billsIds: string[]): Promise<ProcessedBillType[]> => {
+        return await Promise.all(
+            billsIds.map(async (id) => {
+                const billId = id.replace('bull:playwright-queue:', '')
+                return (await playwrightQueue.getJob(billId))?.data?.failedBill
             })
-            if (billData.status == 'NOT_FOUND') throw new UnrecoverableError(billData.message)
-            throw new Error('Error al procesar factura')
-        }
+        )
+    }
+    const playwrightFlowWorker = new Worker('playwright-flow',
+        async (job) => {
+            const context = await newContext(browser)
+            const page = await context.newPage()
+            const EPS = new CooSaludBot(context, page)
+            const IPS = new HorisoesBot(context, page, '')
+            const { executionId, radicacionCodes }: { executionId: string, radicacionCodes: RadicacionCodesType } = job.data
+            const { processed, ignored } = await job.getDependencies()
 
-        return processedBill
-    },
-    { connection: REDIS_CONNECTION, concurrency: 1 }
-)
+            const successBills: ProcessedBillType[] = getDataFromEntries(processed, 1)
+            const successLen = successBills.length
 
-//==================================================================
+            const failedBillsIds: string[] = getDataFromEntries(ignored, 0)
+            const failedBills: ProcessedBillType[] = await getFailedBills(failedBillsIds)
+            const failedLen = failedBills.length
 
-//* Status
+            const preRadicados = []
 
-playwrightWorker.on('active', async (job) => {
-    console.log(`\nWorker inicializado en Job ${job?.id}`)
-})
-
-playwrightWorker.on('completed', async (_job, result) => {
-    console.log(result)
-    console.log(`Job completado`)
-})
-
-playwrightWorker.on('failed', (job, err) => {
-    console.log(`\nJob ${job?.id}: ${job?.name} falló`)
-    console.error(err.message)
-})
-
-playwrightWorker.on('drained', async () => {
-    const activeJobs = await playwrightQueue.getActiveCount()
-    const waitingJobs = await playwrightQueue.getWaitingCount()
-
-    if (activeJobs == 0 && waitingJobs == 0 && browser && browser.isConnected()) {
-        await browser.close()
-
-        const failedBills: ProcessedBillType[] = (await playwrightQueue.getFailed()).map(job => job.data?.failedBill)
-        const successBills: ProcessedBillType[] = (await playwrightQueue.getCompleted()).map(job => job.returnvalue)
-        const successLen = successBills.length
-        const failedLen = failedBills.length
-
-        const metadata = {
-            total_facturas: successLen + failedLen,
-            total_radicadas: successLen,
-            total_fallidas: failedLen,
-            pre_radicados: radicacionCodes.map(radicado => {
+            for (const radicado of radicacionCodes) {
                 const radicadoBills = successBills.filter(bill => bill.radicado == radicado.code)
-                return {
+
+                const data = await EPS.getPreRadicadoData(radicado.code, radicadoBills.length)
+                if (data) await IPS.updatePreRadicadoFile(data)
+
+                preRadicados.push({
                     codigo: radicado.code,
                     contrato: radicado.contract,
                     facturas: radicadoBills.map(bill => bill.bill),
                     cantidad_facturas: radicadoBills.length
-                }
-            }),
-            fallidas: {
-                codigos: failedBills.map(bill => bill.bill),
-                facturas: failedBills
+                })
             }
-        }
 
-        await executionService.finishExecution(executionId, { metadata })
-        console.log('\nWorker finalizado')
-    }
-})
+            const metadata = {
+                total_facturas: successLen + failedLen,
+                total_radicadas: successLen,
+                total_fallidas: failedLen,
+                pre_radicados: preRadicados,
+                fallidas: {
+                    codigos: failedBills.map(bill => bill.bill),
+                    facturas: failedBills
+                }
+            }
 
-playwrightWorker.on('error', (err) => {
-    console.error(err)
-})
+            await context.close()
+            await executionService.finishExecution(executionId, { metadata })
+        },
+        { connection: REDIS_CONNECTION }
+    )
+
+    //? Status
+    playwrightFlowWorker.on('active', () => {
+        console.log('\n==================================================')
+        console.log(`\nFlow worker inicializado`)
+    })
+
+    playwrightFlowWorker.on('completed', async (job) => {
+        console.log(`Flow ${job.name} completado`)
+        console.log('\n==================================================')
+    })
+
+    playwrightFlowWorker.on('failed', (job, err) => {
+        console.log(`\nFlow ${job?.name} falló`)
+        console.error(err.message)
+    })
+
+    playwrightFlowWorker.on('error', (err) => {
+        console.log('Error en Flow worker...')
+        console.error(err)
+    })
+
+    process.on('SIGINT', async () => {
+        await playwrightFlowWorker.close()
+    })
+}
+FlowWorker()
+
+async function QueueWorker() {
+    //? Main
+    console.log('\nQueue worker')
+    console.log('\n==================================================')
+    console.log('\n')
+
+    const playwrightQueueWorker = new Worker('playwright-queue',
+        async (job) => {
+            console.log(`Job ${job.id} inicializado`)
+
+            //? Execution
+            const { bill, radicacionCodes }: JobDataType['data'] = job.data
+            const context = await newContext(browser)
+            const page = await context.newPage()
+
+            const workflow = new HorisoesCoosaludWorkflow(context, page, bill, radicacionCodes)
+            await workflow.run()
+            const billData = workflow.billData
+
+            await context.close()
+
+            //? Return
+            const { files, ...processedBillData } = billData
+            const processedBill: ProcessedBillType = processedBillData
+
+            if (billData.status != 'SUCCESS') {
+                await job.updateData({
+                    ...job.data,
+                    failedBill: processedBill
+                })
+                if (billData.status == 'NOT_FOUND') throw new UnrecoverableError(billData.message)
+                throw new Error(billData.message)
+            }
+
+            return processedBill
+        },
+        { connection: REDIS_CONNECTION, concurrency: 5 }
+    )
+
+    //? Status
+    playwrightQueueWorker.on('completed', async (job) => {
+        console.log(`Job ${job.id} completado`)
+    })
+
+    playwrightQueueWorker.on('failed', (job, err) => {
+        console.log(`\nJob ${job?.id} falló: ${err.message}`)
+        console.error(err)
+    })
+
+    playwrightQueueWorker.on('error', (err) => {
+        console.log('Error en Queue worker...')
+        console.error(err)
+    })
+
+    process.on('SIGINT', async () => {
+        await playwrightQueueWorker.close()
+    })
+}
+QueueWorker()
+
+//==================================================================
 
 process.on('SIGINT', async () => {
-    console.log('\nCerrando worker...')
-
+    console.log('\nCerrando Workers...')
     if (browser && browser.isConnected()) {
         await browser.close()
     }
-    await playwrightWorker.close()
     process.exit(0)
 })
-//==================================================================

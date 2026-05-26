@@ -1,30 +1,39 @@
 import prisma from '@/config/prisma'
-import { executionDataType, executionUpdateDataType } from './execution.types'
 import { formatExecutionDate, getDateTimeDiff } from '@/utils/dates'
+import { executionDataType, executionUpdateDataType } from './execution.types'
 
 export async function executions() {
-    return (await prisma.executions.findMany()).map(({ started_at, finished_at, ...data }) => ({
+    return (await prisma.executions.findMany({
+        include: {
+            status: true
+        }
+    })).map(({ status, statusId, started_at, finished_at, metadata, ...data }) => ({
         ...data,
+        status: status.name,
         started_at: formatExecutionDate(started_at),
         finished_at: formatExecutionDate(finished_at),
-        execution_time: getDateTimeDiff(started_at, finished_at)
+        execution_time: getDateTimeDiff(started_at, finished_at),
+        metadata
     }))
 }
 
 export async function getExecution(id: string | undefined) {
     if (!id) return
     const execution = await prisma.executions.findUnique({
-        where: {
-            id
+        where: { id },
+        include: {
+            status: true
         }
     })
     if (execution) {
-        const { started_at, finished_at, ...data } = execution
+        const { status, statusId, started_at, finished_at, metadata, ...data } = execution
         return {
             ...data,
+            status: status.name,
             started_at: formatExecutionDate(started_at),
             finished_at: formatExecutionDate(finished_at),
-            execution_time: getDateTimeDiff(started_at, finished_at)
+            execution_time: getDateTimeDiff(started_at, finished_at),
+            metadata
         }
     }
 }
@@ -56,6 +65,16 @@ export async function finishExecution(id: string | undefined, data: executionUpd
             statusId: 2,
             metadata,
             finished_at: new Date()
+        }
+    })
+}
+
+export async function getExecutions(epsCode: string, ipsCode: string) {
+    return await prisma.executions.findMany({
+        where: {
+            statusId: 2,
+            epsCode,
+            ipsCode
         }
     })
 }

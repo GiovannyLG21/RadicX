@@ -4,7 +4,7 @@ import RoleSchema from './role.scheme'
 import * as roleController from './role.controller'
 import { ROLES } from '@/config/permissions'
 
-const router = Router()
+const router: Router = Router()
 
 router.use(authMiddleware(ROLES.SUPER_ADMIN))
 

@@ -1,4 +1,6 @@
 import { Page } from 'playwright'
+import { FlowChildJob } from 'bullmq'
+import { CellValue } from 'exceljs'
 
 //* Bot Types
 export type IPSBotType = (page: Page, bill: string) => Promise<BillDataType>
@@ -7,12 +9,13 @@ export type EPSBotType = (page: Page, bill: string, radicacionCodes: RadicacionC
 
 //* Worker Types
 export type JobDataType = {
-    execution: string,
-    bill: string
-    ipsCode: string,
-    epsCode: string
+    data: {
+        bill: string,
+        radicacionCodes: RadicacionCodesType
+    }
 }
 
+export type FlowChildJobType = JobDataType & FlowChildJob
 
 //* Bill Status Type
 export type BillInfoType = {
@@ -66,3 +69,5 @@ export type RadicacionCodesType = {
     contract: 'Contributivo' | 'Subsidiado',
     code: string
 }[]
+
+export type ExcelRowData = CellValue[]

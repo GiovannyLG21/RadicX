@@ -1,8 +1,8 @@
 import fs from 'fs'
 import { Browser } from 'playwright'
 import { chromium } from 'playwright-extra'
+import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import { DEFAULT_TIMEOUT, HEADLESS_BROWSER, NAVIGATION_TIMEOUT, SLOWMO_BROWSER } from './config/config'
-import StealthPlugin from "puppeteer-extra-plugin-stealth"
 
 export async function execPlaywright() {
     chromium.use(StealthPlugin())

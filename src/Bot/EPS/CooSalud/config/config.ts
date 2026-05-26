@@ -1,3 +1,5 @@
+import { RadicacionCodesType } from "@/Bot/types"
+
 export const CREDENTIALS = {
     user: '1900108923',
     password: 'coosalud2025*'
@@ -8,7 +10,13 @@ export const SFTP_CREDENTIALS = {
     password: 'jhAkif5ljahsdñ'
 }
 
-export const CONTRACTS = {
-    'Contributivo': 'NAL00C47051567-25',
-    'Subsidiado': 'NAL00S47051564-25'
-}
+export const CONTRACTS: RadicacionCodesType = [
+    {
+        contract: 'Contributivo',
+        code: 'NAL00C47051567-25'
+    },
+    {
+        contract: 'Subsidiado',
+        code: 'NAL00S47051564-25'
+    }
+]

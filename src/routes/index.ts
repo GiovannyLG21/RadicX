@@ -7,7 +7,7 @@ import EPSRoutes from '@/modules/EPS/eps.routes'
 import ExecutionRoutes from '@/modules/Execution/execution.routes'
 
 
-const router = Router()
+const router: Router = Router()
 
 // router.use('/roles', RoleRoutes)
 // router.use('/users', UserRoutes)

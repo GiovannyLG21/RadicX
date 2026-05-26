@@ -50,7 +50,7 @@ model EPS {
 
   executions Executions[]
 
-  @@map("EPS")
+  @@map("eps")
 }
 
 model IPS {
@@ -61,7 +61,7 @@ model IPS {
 
   executions Executions[]
 
-  @@map("IPS")
+  @@map("ips")
 }
 
 model Status {
