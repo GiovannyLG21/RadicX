@@ -22,7 +22,6 @@ services:
 
   radicx:
     build: .
-    image: radicx:latest
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -33,7 +32,7 @@ services:
         condition: service_healthy
 
   workers:
-    image: radicx:latest
+    build: .
     restart: unless-stopped
     <<: *common-env
     command: pnpm start:workers

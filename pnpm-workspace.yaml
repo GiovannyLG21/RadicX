@@ -4,6 +4,6 @@ allowBuilds:
   cpu-features: false
   esbuild: false
   msgpackr-extract: false
-  prisma: false
+  prisma: true
   ssh2: false
   unrs-resolver: false
