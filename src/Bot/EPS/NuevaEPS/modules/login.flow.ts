@@ -18,14 +18,8 @@ export async function LoginFlow(context: BrowserContext, page: Page) {
         }
         const loginPage = new LoginPage(context, page, loginData)
 
-        const actualSession = await loginPage.verifySession()
-        if (actualSession) return
-
-        await page.locator('[name="loginForm:tipoId"]').selectOption('3')
-        
-        await loginPage.login()
-        const session = await loginPage.verifySession()
-        if (!session) throw new Error('Login error')
+        const login = await loginPage.run()
+        if (!login) throw new Error('Login error')
 
     } catch (err: any) {
         console.error(err.message)

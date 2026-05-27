@@ -2,7 +2,7 @@ import express, { Express } from 'express'
 import cookieParser from 'cookie-parser'
 import morgan from 'morgan'
 import cors from 'cors'
-import { NODE_ENV, WEB_URL } from './config/env'
+import { NODE_ENV } from './config/env'
 import Routes from './routes'
 import { errorMiddleware } from './middlewares'
 import serverAdapter from './Bot/config/bull-board'
@@ -13,7 +13,7 @@ app.use(express.json())
 app.use(cookieParser())
 app.use(morgan(NODE_ENV === 'development' || NODE_ENV === 'test' ? 'dev' : 'common'))
 app.use(cors({
-  origin: WEB_URL,
+  origin: '*',
   credentials: true
 }))
 

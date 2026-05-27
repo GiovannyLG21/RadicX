@@ -3,7 +3,7 @@ import * as userService from './user.service'
 import { asyncHandler } from '@/middlewares';
 import { CreateUser } from './user.types';
 
-export const users = asyncHandler(async (_req: Request, res: Response) => {
+export const users = asyncHandler(async (_req, res) => {
     const users = await userService.users()
 
     if (!users.length) return res.json({
@@ -18,7 +18,7 @@ export const users = asyncHandler(async (_req: Request, res: Response) => {
     })
 })
 
-export const getUser = asyncHandler(async (req: Request, res: Response) => {
+export const getUser = asyncHandler(async (req, res) => {
     const { id } = req.params
 
     const user = await userService.getUserById(id)
@@ -34,7 +34,7 @@ export const getUser = asyncHandler(async (req: Request, res: Response) => {
     })
 })
 
-export const createUser = asyncHandler(async (req: Request, res: Response) => {
+export const createUser = asyncHandler(async (req, res) => {
     const data: CreateUser = req.body
     const { email, username } = data
 

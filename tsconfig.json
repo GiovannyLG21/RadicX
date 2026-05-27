@@ -15,7 +15,7 @@
     "target": "es2020",
     "module": "node20",
     "rootDir": ".",
-    "outDir": "dist",
+    "outDir": "./dist",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,

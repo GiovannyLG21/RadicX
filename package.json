@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development nodemon",
     "build": "tsc -p tsconfig.build.json",
-    "start": "cross-env NODE_ENV=production node dist/app.js",
+    "start": "cross-env NODE_ENV=production node dist/server.js",
+    "start:workers": "node dist/Bot/config/workers.js",
     "test": "cross-env NODE_ENV=test jest",
     "seed": "npx prisma db seed",
     "workers": "npx nodemon --exec tsx -r tsconfig-paths/register src/Bot/config/workers.ts"
