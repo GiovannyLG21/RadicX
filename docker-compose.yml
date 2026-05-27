@@ -8,6 +8,7 @@ x-env: &common-env
     - DATABASE_NAME=$DATABASE_NAME
     - JWT_SECRET=$JWT_SECRET
     - REDIS_PASSWORD=$REDIS_PASSWORD
+    - REDIS_HOST=$REDIS_HOST
 
 services:
   redis:
