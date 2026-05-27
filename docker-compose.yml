@@ -19,6 +19,11 @@ services:
     volumes:
       - redis_data:/data
     command: redis-server --save 60 1 --appendonly yes --appendfsync everysec --requirepass ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   radicx:
     build: .

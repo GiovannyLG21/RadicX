@@ -12,8 +12,9 @@
       "node",
       "jest"
     ],
-    "target": "es2020",
-    "module": "node20",
+    "target": "es2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "rootDir": ".",
     "outDir": "./dist",
     "esModuleInterop": true,
