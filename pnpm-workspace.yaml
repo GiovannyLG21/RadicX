@@ -1,0 +1,9 @@
+allowBuilds:
+  '@prisma/engines': false
+  bcrypt: false
+  cpu-features: false
+  esbuild: false
+  msgpackr-extract: false
+  prisma: true
+  ssh2: false
+  unrs-resolver: false

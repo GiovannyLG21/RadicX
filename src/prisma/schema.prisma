@@ -1,0 +1,91 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model User {
+  id         Int       @id @default(autoincrement())
+  names      String    @db.VarChar(50)
+  lastnames  String    @db.VarChar(50)
+  username   String    @unique @db.VarChar(50)
+  email      String    @unique @db.VarChar(255)
+  password   String    @db.VarChar(255)
+  roleId     Int
+  isActive   Boolean   @default(true) @map("is_active")
+  disabledAt DateTime? @map("disabled_at") @db.Timestamp()
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt  DateTime? @updatedAt @map("updated_at") @db.Timestamp()
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamp()
+
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@map("users")
+}
+
+model Role {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique @db.VarChar(50)
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamp()
+
+  users User[]
+
+  @@map("roles")
+}
+
+model EPS {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique @map("codigo") @db.VarChar(6)
+  name      String   @unique @map("nombre") @db.VarChar(100)
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp()
+
+  executions Executions[]
+
+  @@map("eps")
+}
+
+model IPS {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique @map("codigo") @db.VarChar(11)
+  name      String   @unique @map("nombre") @db.VarChar(100)
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp()
+
+  executions Executions[]
+
+  @@map("ips")
+}
+
+model Status {
+  id   Int    @id @default(autoincrement())
+  name String @map("nombre") @db.VarChar(25)
+
+  executions Executions[]
+
+  @@map("estados")
+}
+
+model Executions {
+  id          String    @id @default(cuid())
+  ipsCode     String       @map("ips_codigo")
+  epsCode     String       @map("eps_codigo")
+  statusId    Int       @map("estado")
+  metadata    Json
+  started_at  DateTime? @default(now()) @map("started_at") @db.Timestamp()
+  finished_at DateTime? @map("finished_at") @db.Timestamp()
+
+  status Status @relation(fields: [statusId], references: [id])
+  ips    IPS    @relation(fields: [ipsCode], references: [code])
+  eps    EPS    @relation(fields: [epsCode], references: [code])
+
+  @@map("ejecuciones")
+}
