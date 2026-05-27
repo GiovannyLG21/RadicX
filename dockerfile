@@ -1,10 +1,10 @@
-FROM node:22-alpine3.23
+FROM mcr.microsoft.com/playwright:v1.60.0-jammy
 
 WORKDIR /app
 
-RUN npm install -g pnpm@latest-11
-
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+RUN npm install -g pnpm@latest-11
 
 RUN pnpm install
 

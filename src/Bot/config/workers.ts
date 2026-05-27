@@ -1,6 +1,5 @@
 import { UnrecoverableError, Worker } from 'bullmq'
 import { Browser } from 'playwright'
-import { REDIS_CONNECTION } from './config'
 import { execPlaywright, newContext } from '../index'
 import { playwrightQueue } from './queues'
 import * as executionService from '@/modules/Execution/execution.service'
@@ -9,6 +8,7 @@ import { JobDataType, ProcessedBillType, RadicacionCodesType } from '../types'
 import { HorisoesCoosaludWorkflow } from '../Workflows/horisoes-coosalud.workflow'
 import CooSaludBot from '../EPS/CooSalud'
 import HorisoesBot from '../IPS/Horisoes'
+import { REDIS_HOST, REDIS_PASSWORD } from '@/config/env'
 
 console.log('\nWorkers running')
 console.log('==================================================')
@@ -78,7 +78,14 @@ async function FlowWorker() {
             await context.close()
             await executionService.finishExecution(executionId, { metadata })
         },
-        { connection: REDIS_CONNECTION }
+        {
+            connection: {
+                host: REDIS_HOST,
+                port: 6379,
+                password: REDIS_PASSWORD,
+                maxRetriesPerRequest: null
+            }
+        }
     )
 
     //? Status
@@ -144,7 +151,14 @@ async function QueueWorker() {
 
             return processedBill
         },
-        { connection: REDIS_CONNECTION, concurrency: 5 }
+        {
+            connection: {
+                host: REDIS_HOST,
+                port: 6379,
+                password: REDIS_PASSWORD,
+                maxRetriesPerRequest: null
+            }, concurrency: 5
+        }
     )
 
     //? Status
