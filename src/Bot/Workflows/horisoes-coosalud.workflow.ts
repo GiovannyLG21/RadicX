@@ -54,13 +54,15 @@ export class HorisoesCoosaludInitiator {
             this.message = EPS.message
             return
         }
-        this.radicacionCodes = radicacionCodes        
+        this.radicacionCodes = radicacionCodes
         await browser.close()
 
         const Jobs: FlowChildJobType[] = this.bills.map((bill, index) => ({
             name: `process-bill-${bill}`,
             queueName: 'playwright-queue',
             data: {
+                executionId: this.executionId,
+                flow: `bills-flow-${this.executionId}`,
                 bill,
                 radicacionCodes
             },
@@ -90,7 +92,9 @@ export class HorisoesCoosaludInitiator {
             name: `bills-flow-${this.executionId}`,
             data: {
                 executionId: this.executionId,
-                radicacionCodes: this.radicacionCodes
+                radicacionCodes: this.radicacionCodes,
+                bills_cant: this.bills.length,
+                bills: this.bills
             },
             queueName: 'playwright-flow',
             children: Jobs,

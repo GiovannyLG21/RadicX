@@ -50,9 +50,6 @@ importers:
       googleapis:
         specifier: ^171.4.0
         version: 171.4.0
-      ioredis:
-        specifier: ^5.10.1
-        version: 5.10.1
       jsonwebtoken:
         specifier: ^9.0.3
         version: 9.0.3

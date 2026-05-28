@@ -1,17 +1,18 @@
 import { UnrecoverableError, Worker } from 'bullmq'
+import { playwrightFlowQueue, playwrightQueue } from './queues'
 import { Browser } from 'playwright'
 import { execPlaywright, newContext } from '../index'
-import { playwrightQueue } from './queues'
-import * as executionService from '@/modules/Execution/execution.service'
-import { getDataFromEntries } from '@/utils/objects'
-import { JobDataType, ProcessedBillType, RadicacionCodesType } from '../types'
 import { HorisoesCoosaludWorkflow } from '../Workflows/horisoes-coosalud.workflow'
 import CooSaludBot from '../EPS/CooSalud'
 import HorisoesBot from '../IPS/Horisoes'
 import { REDIS_HOST, REDIS_PASSWORD } from '@/config/env'
+import { getDataFromEntries } from '@/utils/objects'
+import { JobDataType, ProcessedBillType, RadicacionCodesType } from '../types'
+import * as executionService from '@/modules/Execution/execution.service'
 
 console.log('\nWorkers running')
 console.log('==================================================')
+console.log('\n')
 
 //* Globals
 let browser: Browser
@@ -77,6 +78,16 @@ async function FlowWorker() {
 
             await context.close()
             await executionService.finishExecution(executionId, { metadata })
+
+            // Clean browser
+            const waitingFlows = await playwrightFlowQueue.getWaitingCount()
+            const waitingChildrenFlows = await playwrightFlowQueue.getWaitingChildrenCount()
+
+            if (waitingFlows === 0 && waitingChildrenFlows === 0) {
+                console.log('\n Refrescando navegador...')
+                await browser.close()
+                await browserManager()
+            }
         },
         {
             connection: {
@@ -84,7 +95,8 @@ async function FlowWorker() {
                 port: 6379,
                 password: REDIS_PASSWORD,
                 maxRetriesPerRequest: null
-            }
+            },
+            concurrency: 1
         }
     )
 
@@ -117,10 +129,6 @@ FlowWorker()
 
 async function QueueWorker() {
     //? Main
-    console.log('\nQueue worker')
-    console.log('\n==================================================')
-    console.log('\n')
-
     const playwrightQueueWorker = new Worker('playwright-queue',
         async (job) => {
             console.log(`Job ${job.id} inicializado`)
