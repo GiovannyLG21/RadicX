@@ -84,7 +84,7 @@ async function FlowWorker() {
             const waitingChildrenFlows = await playwrightFlowQueue.getWaitingChildrenCount()
 
             if (waitingFlows === 0 && waitingChildrenFlows === 0) {
-                console.log('\n Refrescando navegador...')
+                console.log('\nRefrescando navegador...')
                 await browser.close()
                 await browserManager()
             }
@@ -153,7 +153,9 @@ async function QueueWorker() {
                     ...job.data,
                     failedBill: processedBill
                 })
+
                 if (billData.status == 'NOT_FOUND') throw new UnrecoverableError(billData.message)
+                
                 throw new Error(billData.message)
             }
 

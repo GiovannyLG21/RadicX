@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { upload, validateScheme } from '@/middlewares'
-import { executionScheme, executionUpdateScheme } from './execution.scheme'
+import { executionScheme } from './execution.scheme'
 import * as executionController from './execution.controller'
 import { validateBillsFile } from './execution.middleware'
 
