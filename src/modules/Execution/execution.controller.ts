@@ -45,7 +45,7 @@ export const getExecution = asyncHandler(async (req, res) => {
 export const createExecution = asyncHandler(async (req, res) => {
     const bills: BillsCodesType = req.body.bills
     const data: executionDataType = req.body
-    const { ipsCode, epsCode, metadata } = data
+    const { ipsCode, epsCode } = data
 
     //* Find IPS/EPS
     const IPSData = await IPSService.getIPSByCode(ipsCode)
@@ -62,27 +62,43 @@ export const createExecution = asyncHandler(async (req, res) => {
         status: 409
     })
 
-    //* Create execution
-    const execution = await executionService.createExecution({ ipsCode, epsCode, metadata })
-    const { id: executionId, status, started_at } = execution
+    //* Available Execution
+    const lastExecutions = await executionService.getLastExecutions(epsCode, ipsCode, 4)
+    if (lastExecutions.length) {
+        const rangSupDate = new Date()
+        const rangInfDate = new Date()
+        rangInfDate.setHours(rangSupDate.getHours() - 6)
+
+        const maxExecuted = lastExecutions.every(execution => {
+            const executionDate = execution.started_at
+            return executionDate && executionDate >= rangInfDate && executionDate <= rangSupDate
+        })
+
+        if (maxExecuted) return res.status(409).json({
+            message: 'Solo se pueden realizar 4 ejecuciones cada 6 horas. Por favor espere para realizar mas.',
+            status: 409
+        })
+    }
 
     //* Workflow run initiator | Creation of flow and jobs
-    const WorkflowInitiator = new WorkflowReference.initiator(executionId, bills)
+    const WorkflowInitiator = new WorkflowReference.initiator(bills)
     await WorkflowInitiator.run()
 
-    if (!WorkflowInitiator.success) return res.status(500).json({
+    if (!WorkflowInitiator.success) return res.status(WorkflowInitiator.status).json({
         message: `Error al ejecutar el workflow: ${WorkflowInitiator.message}`,
-        status: 500
+        status: WorkflowInitiator.status
     })
 
+    const execution = WorkflowInitiator.execution
+
     return res.json({
-        message: `Ejecucion inicializada: ${execution.id} - ${getDateTime(execution.started_at)}`,
+        message: `Ejecucion inicializada: ${execution?.id} - ${getDateTime(execution?.started_at)}`,
         data: {
-            id: executionId,
+            id: execution?.id,
             ipsCode,
             epsCode,
-            status: status.name,
-            started_at,
+            status: execution?.status.name,
+            started_at: execution?.started_at,
             process: {
                 bills
             }
@@ -124,19 +140,19 @@ export const getAllProcessed = asyncHandler(async (req, res) => {
         procesadas: [],
         fallidas: []
     }
+    const processedStructureFaileds: string[] = []
 
     const executions = await executionService.getExecutions(epsCode, ipsCode)
 
     for (const execution of executions) {
         const metadata = execution.metadata as ExecutionMetadataType
 
-        // Total fallidas y procesadas
+        // Total procesadas
         processedStructure.total_procesadas += metadata.total_facturas
-        processedStructure.total_fallidas += metadata.total_fallidas
 
         for (const pre_radicado of metadata.pre_radicados) {
             // Pre_radicados
-            const existPreradicado = processedStructure.pre_radicados.find(codigo => codigo == pre_radicado.codigo)
+            const existPreradicado = processedStructure.pre_radicados.includes(pre_radicado.codigo)
             if (!existPreradicado) processedStructure.pre_radicados.push(pre_radicado.codigo)
 
             // Procesadas
@@ -155,8 +171,27 @@ export const getAllProcessed = asyncHandler(async (req, res) => {
         }
 
         // Fallidas
-        for (const fallida of metadata.fallidas.codigos) processedStructure.fallidas.push(fallida)
+        for (const fallida of metadata.fallidas.codigos) {
+            if (processedStructure.fallidas.includes(fallida)) continue
+            processedStructure.total_fallidas += 1
+            processedStructure.fallidas.push(fallida)
+        }
     }
+
+    // Encontrar fallidas cargadas
+    for (const failedBill of processedStructure.fallidas) {
+        let failedBillProcessed = false
+        for (const processed of processedStructure.procesadas) {
+            failedBillProcessed = processed.facturas.includes(failedBill)
+            if (failedBillProcessed) {
+                processedStructure.total_fallidas -= 1
+                break
+            }
+        }
+        if (!failedBillProcessed) processedStructureFaileds.push(failedBill)
+    }
+
+    processedStructure.fallidas = processedStructureFaileds
 
     return res.json({
         message: `Ejecuciones IPS-${ipsCode} EPS-${epsCode}`,

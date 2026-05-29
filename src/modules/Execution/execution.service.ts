@@ -69,12 +69,29 @@ export async function finishExecution(id: string | undefined, data: executionUpd
     })
 }
 
-export async function getExecutions(epsCode: string, ipsCode: string) {
+export async function getExecutions(epsCode: string, ipsCode: string, cant?: number) {
     return await prisma.executions.findMany({
         where: {
             statusId: 2,
             epsCode,
             ipsCode
-        }
+        },
+        orderBy: {
+            started_at: 'desc'
+        },
+        take: cant ? cant : 100
+    })
+}
+
+export async function getLastExecutions(epsCode: string, ipsCode: string, cant?: number) {
+    return await prisma.executions.findMany({
+        where: {
+            epsCode,
+            ipsCode
+        },
+        orderBy: {
+            started_at: 'desc'
+        },
+        take: cant ? cant : 100
     })
 }

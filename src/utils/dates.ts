@@ -1,5 +1,5 @@
 
-export const getDateTime = (date: Date | null) => {
+export const getDateTime = (date: Date | null | undefined) => {
     const config: Intl.DateTimeFormatOptions = {
         day: '2-digit',
         month: '2-digit',
@@ -17,7 +17,8 @@ export const isValidDate = (date: string) => {
     return !isNaN(Date.parse(date))
 }
 
-export function formatDate(date: Date): string {
+export function formatDate(date: Date | null): string {
+    if (!date) return ''
     const day = String(date.getDate()).padStart(2, '0')
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const year = date.getFullYear()
