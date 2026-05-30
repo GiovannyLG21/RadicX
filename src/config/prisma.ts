@@ -1,10 +1,10 @@
 import { PrismaClient } from '@/prisma/generated/client'
 import { PrismaMariaDb } from '@prisma/adapter-mariadb'
-import {    
-    DATABASE_HOST,    
+import {
+    DATABASE_HOST,
     DATABASE_USER,
     DATABASE_PASSWORD,
-    DATABASE_NAME,    
+    DATABASE_NAME,
 } from './env'
 
 const adapter = new PrismaMariaDb({
@@ -23,8 +23,6 @@ export const prisma =
     globalForPrisma.prisma ??
     new PrismaClient({ adapter })
 
-if (process.env.NODE_ENV !== 'production') {
-    globalForPrisma.prisma = prisma
-}
+globalForPrisma.prisma = prisma
 
 export default prisma
