@@ -3,18 +3,23 @@ import BillFlow from './modules/bill.flow'
 import RIPSFlow from './modules/rips.flow'
 import { BillDataType, ExcelRowData, LoginDataType } from '@/Bot/types'
 import { LoginPage, downloadDriveFile, formatError } from '@/Bot/utils'
-import { CREDENTIALS, HEV_FOLDER_ID, EXCEL_FILE_ID } from './config/config'
+import { CREDENTIALS, EXCEL_FILE_ID, HEV_FOLDER_ID } from './config/config'
 import { sheets } from '@/Bot/config/googleapis'
 
 /**
- * @class Clase Bot perteneciente a la IPS 'Horisoes'.
- * Cada metodo ejecutado retorna "void", en cambio, actualiza la variable 'billData' segun el resultado de la ejecucion. Esta contiene toda la informacion del proceso 
- * @method getBillFiles: Metodo para obtener el archivo de una factura de acuerdo al codigo de factura proporcionado.    
- * @method getRIPSFiles: Metodo para obtener el archivo de una factura de acuerdo al codigo de factura proporcionado.    
- * @method getHEVFiles: Metodo para definir un fallo en billData por una respuesta del BillFlow o RIPSFlow.    
- * @method updatePreRadicadoFile: Metodo para actualizar el archivo excel (archivo de seguimiento) en drive insertando un nuevo pre-radicado.
+ * @class **Clase Bot** perteneciente a la **IPS Horisoes**.
+ *  
+ * @method **getBillFiles** Metodo para obtener el archivo de una factura de acuerdo al codigo de factura proporcionado.    
+ * @method **getRIPSFiles** Metodo para obtener el archivo de una factura de acuerdo al codigo de factura proporcionado.    
+ * @method **getHEVFiles** Metodo para definir un fallo en billData por una respuesta del BillFlow o RIPSFlow.    
+ * @method **updatePreRadicadoFile** Metodo para actualizar el archivo excel (archivo de seguimiento) en drive insertando un nuevo pre-radicado.
+ * 
+ * Cada metodo ejecutado retorna "void", en cambio, actualiza la variable 'billData' segun el resultado de la ejecucion. 
+ * Esta contiene toda la informacion del proceso. 
  */
 class HorisoesBot {
+    public ipsCode: string
+
     /**
     * @param {LoginPage} loginPage Clase 'login' para el logueo en plataforma 
     */
@@ -26,17 +31,17 @@ class HorisoesBot {
     private loginData: LoginDataType
 
     /**
-     * @param {BillDataType} billData Objeto con los datos y archivos de la factura procesada/a procesar
+     * @param {BillDataType} billData Objeto con los datos y archivos de la factura procesada/por procesar
      */
     public billData: BillDataType
 
     /**
-     * @param {BillFlow} billFlow Flow para la descarga de factura
+     * @param {BillFlow} billFlow **Flow** para la descarga de la factura.
      */
     private billFlow: BillFlow
 
     /**
-     * @param {RIPSFlow} ripsFlow Flow para la descarga de los archivos RIPS y CUV de la factura
+     * @param {RIPSFlow} ripsFlow **Flow** para la descarga de los archivos RIPS y CUV de la factura.
      */
     private ripsFlow: RIPSFlow
 
@@ -57,6 +62,7 @@ class HorisoesBot {
         private page: Page,
         private bill: string,
     ) {
+        this.ipsCode = '901749264'
         this.loginData = {
             sessionSelector: '.o-dropdown.dropdown.o_user_menu',
             userSelector: '#login',
@@ -94,12 +100,14 @@ class HorisoesBot {
                 billData.message = 'Error al iniciar sesion en ODOO'
                 this.billData = billData
             }
-        } catch (err: any) {
-            console.error(err.message)
-            billData.success = false
-            billData.status = 'LOGIN_FAILED'
-            billData.message = `Error al iniciar sesion en ODOO: ${formatError(err.message)}`
-            this.billData = billData
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err.message)
+                billData.success = false
+                billData.status = 'LOGIN_FAILED'
+                billData.message = `Error al iniciar sesion en ODOO: ${formatError(err.message)}`
+                this.billData = billData
+            }
         }
     }
 
@@ -117,7 +125,7 @@ class HorisoesBot {
         const billFiles = await billFlow.getFiles(zipBuffer)
         if (!billFiles) return this.setFail(billFlow)
 
-        const FEVFileBuffer = billFiles.find(file => file.code == 'FEV')!.buffer
+        const FEVFileBuffer = billFiles.find(file => file.code == 'FEV')?.buffer
         const billContract = await billFlow.getContract(FEVFileBuffer)
         if (!billContract) return this.setFail(billFlow)
 
@@ -149,13 +157,14 @@ class HorisoesBot {
     }
 
     /**
-     * Metodo para obtener el archivo HEV de una factura     
+     * Metodo para obtener el archivo HEV de una factura.    
      */
     async getHEVFiles() {
-        if (!this.billData.success) return
-        const billData = this.billData        
+        const billData = this.billData
         try {
-            const RIPSFileBuffer = billData.files.find(file => file.code == 'RIPS')!.buffer
+            if (!billData.success) return
+            const RIPSFileBuffer = billData.files.find(file => file.code == 'RIPS')?.buffer
+            if (!RIPSFileBuffer) throw new Error('RIPS no encontrado')
             const RIPSfileData = RIPSFileBuffer.toString('utf-8')
             const fileDataParse = JSON.parse(RIPSfileData)
 
@@ -180,17 +189,19 @@ class HorisoesBot {
             })
 
             this.billData = billData
-        } catch (err: any) {
-            console.error(err)
-            billData.success = false
-            billData.status = 'ERROR'
-            billData.message = `Error al descargar HEV: ${formatError(err.message)}`
-            this.billData = billData
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err)
+                billData.success = false
+                billData.status = 'ERROR'
+                billData.message = `Error al descargar HEV: ${formatError(err.message)}`
+                this.billData = billData
+            }
         }
     }
 
     /**
-     * Metodo para definir un fallo en billData por una respuesta del BillFlow o RIPSFlow.    
+     * Metodo para **definir un fallo** en billData por una respuesta del BillFlow o RIPSFlow.    
      */
     private setFail(flow: BillFlow | RIPSFlow) {
         this.billData.success = flow.success
@@ -199,10 +210,10 @@ class HorisoesBot {
     }
 
     /**
-     * Metodo para actualizar el archivo excel (archivo de seguimiento) en drive insertando un nuevo pre-radicado.
-     * @param {ExcelRowData} data Array con datos del pre-radicado.
-     */
-    async updatePreRadicadoFile(data: ExcelRowData) {
+    * Metodo para actualizar el archivo excel (archivo de seguimiento en drive) insertando un nuevo preradicado.
+    * @param {ExcelRowData} data Array con datos del preradicado.
+    */
+    async updatePreRadicadoData(data: ExcelRowData) {
         try {
             await sheets.spreadsheets.values.append({
                 spreadsheetId: EXCEL_FILE_ID,
@@ -214,11 +225,13 @@ class HorisoesBot {
             })
 
             return true
-        } catch (err: any) {
-            console.error(err)
-            this.success = false
-            this.message = `Error al actualizar archivo pre-radicados: ${err.message}`
-            return false
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err)
+                this.success = false
+                this.message = `Error al actualizar archivo pre-radicados: ${err.message}`
+                return false
+            }
         }
     }
 }

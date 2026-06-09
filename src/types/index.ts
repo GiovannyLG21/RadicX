@@ -1,4 +1,4 @@
-export type JWTPayload = {
+export interface JWTPayload {
     sub: string,
     data?: {
         username: string,

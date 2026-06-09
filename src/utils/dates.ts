@@ -1,13 +1,13 @@
 
 export const getDateTime = (date: Date | null | undefined) => {
-    const config: Intl.DateTimeFormatOptions = {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-    }
+    // const config: Intl.DateTimeFormatOptions = {
+    //     day: '2-digit',
+    //     month: '2-digit',
+    //     year: 'numeric',
+    //     hour: '2-digit',
+    //     minute: '2-digit',
+    //     hour12: false,
+    // }
 
     if (date) return date.toLocaleString('sv-SE').replace(',', '')
     return new Date().toLocaleString('sv-SE').replace(',', '')

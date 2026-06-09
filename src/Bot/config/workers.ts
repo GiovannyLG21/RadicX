@@ -67,7 +67,7 @@ async function FlowWorker() {
                 const radicadoBills = successBills.filter(bill => bill.radicado == radicado.code)
 
                 const data = await EPS.getPreRadicadoData(radicado.code, radicadoBills.length)
-                if (data) await IPS.updatePreRadicadoFile(data)
+                if (data) await IPS.updatePreRadicadoData(data)
 
                 preRadicados.push({
                     codigo: radicado.code,
@@ -157,8 +157,15 @@ async function QueueWorker() {
             await context.close()
 
             //? Return
-            const { files, ...processedBillData } = billData
-            const processedBill: ProcessedBillType = processedBillData
+            const { radicado, contract, success, status, message  } = billData
+            const processedBill: ProcessedBillType = {
+                bill,
+                radicado: radicado ?? '', 
+                contract, 
+                success, 
+                status, 
+                message,
+            }
 
             if (billData.status != 'SUCCESS') {
                 await job.updateData({

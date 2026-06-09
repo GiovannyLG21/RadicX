@@ -6,6 +6,9 @@ import { DEFAULT_TIMEOUT, HEADLESS_BROWSER, NAVIGATION_TIMEOUT, SLOWMO_BROWSER }
 
 chromium.use(StealthPlugin())
 
+/**
+ * Funcion para la **inicializacion del navegador**.
+ */
 export async function execPlaywright() {
     const browser = await chromium.launch({
         headless: HEADLESS_BROWSER,
@@ -14,6 +17,10 @@ export async function execPlaywright() {
     return browser
 }
 
+/**
+ * Funcion para la **creación de un nuevo contexto** del navegador.
+ * @param browser Navegador inicializado
+ */
 export async function newContext(browser: Browser) {
     const context = await browser.newContext(
         fs.existsSync('playwright-data/session.json') ? {

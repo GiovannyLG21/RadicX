@@ -11,7 +11,7 @@ const authMiddleware = (role: string) => async (req: Request, res: Response, nex
 
         const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload
 
-        const user = await userService.getUserById(decoded.sub)        
+        const user = await userService.getUserById(decoded.sub)
         if (!user) throw new Error
 
         if (user.role.name.toLowerCase() !== role.toLowerCase()) return res.status(403).json({
@@ -23,7 +23,7 @@ const authMiddleware = (role: string) => async (req: Request, res: Response, nex
         next()
     } catch (err) {
         res.status(401).json({
-            message: 'Credenciales invalidas',
+            message: err instanceof Error ? `Credenciales invalidas: ${err.message}` : 'Credenciales invalidas',
             status: 401
         })
     }

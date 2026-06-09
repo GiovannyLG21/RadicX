@@ -1,24 +1,40 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import fs from 'fs'
 import { BrowserContext, Page } from 'playwright'
 import Client from 'ssh2-sftp-client'
 import ExcelJS from 'exceljs'
-import * as coosaludService from './coosalud.service'
 import { CONTRACTS, CREDENTIALS, SFTP_CREDENTIALS } from './config/config'
 import { delay, formatError, LoginPage } from '@/Bot/utils'
 import { BillDataType, ExcelRowData, LoginDataType, RadicacionCodesType } from '@/Bot/types'
+import * as coosaludService from './coosalud.service'
 
 /**
- * @class Clase Bot perteneciente a la EPS 'CooSalud'.
- * @method createRadicados: Metodo para la creacion de radicados de acuerdo a los dos numeros de contrato disponibles: Subsidiado y contributivo  
- * @method uploadBill: Metodo para el cargue de archivos de una factura procesada al sftp de la plataforma
- * @method getRadicado: Metodo para generar un archivo excel con las facturas de un 'pre-radicado' despues de pasar a estado 'radicado'
- * @method getPreRadicadoData Metodo para obtener los datos de un pre radicado recien creado descargando el archivo excel de la plataforma
+ * @class **Clase Bot perteneciente a la EPS 'CooSalud'.**  
+ * @method **createRadicados** Metodo para la creacion de radicados de acuerdo a los dos numeros de contrato disponibles: Subsidiado y contributivo  
+ * @method **uploadBill** Metodo para el cargue de archivos de una factura procesada al sftp de la plataforma
+ * @method **getPreRadicadoData** Metodo para obtener los datos de un preradicado recien creado, descargando el archivo excel de la plataforma.
+ * @method **getPreRadicadosData** Metodo para obtener todos los datos de los preradicados proporcionados.
+ * @method **createRadicadoFile** Metodo para generar un archivo excel con las facturas de un 'pre-radicado' despues de pasar a estado 'radicado'.
  */
-export class CooSaludBot {
+class CooSaludBot {
+    public epsCode: string
+
     /**
      * @param {Client} sftp Cliente para el manejo del sftp.
      */
     private sftp: Client
+
+    /**
+     * Variable de estado del bot
+     * @param {boolean} success Estado de los metodos ejecutados     
+     */
+    public success: boolean
+
+    /**
+     * Variable de estado del bot     
+     * @param {string} message Mensaje de los metodos ejecutados
+     */
+    public message: string
 
     /**
      * @param {LoginPage} loginPage Clase 'login' para el logueo en plataforma 
@@ -35,23 +51,14 @@ export class CooSaludBot {
      */
     public radicacionCodes: RadicacionCodesType
 
-    /**
-     * Variable de estado del bot
-     * @param {boolean} success Estado de los metodos ejecutados     
-     */
-    public success: boolean
-
-    /**
-     * Variable de estado del bot     
-     * @param {string} message Mensaje de los metodos ejecutados
-     */
-    public message: string
-
     constructor(
         private context: BrowserContext,
         private page: Page
     ) {
+        this.epsCode = 'EPS042'
         this.sftp = new Client()
+        this.success = true
+        this.message = ''
         this.loginData = {
             sessionSelector: 'a.sidebar-nav-link[href="#radicaciones"]',
             userSelector: '#usuarioIngreso',
@@ -64,8 +71,6 @@ export class CooSaludBot {
         }
         this.loginPage = new LoginPage(this.context, this.page, this.loginData)
         this.radicacionCodes = []
-        this.success = true
-        this.message = ''
     }
 
     private async login() {
@@ -76,16 +81,18 @@ export class CooSaludBot {
                 this.success = false
                 this.message = 'Error al iniciar sesion en CooSalud'
             }
-        } catch (err: any) {
-            console.error(err.message)
-            this.success = false
-            this.message = `Error al iniciar sesion en CooSalud: ${formatError(err.message)}`
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err.message)
+                this.success = false
+                this.message = `Error al iniciar sesion en CooSalud: ${formatError(err.message)}`
+            }
         }
     }
 
     /**
-     * Metodo para la creacion de radicados de acuerdo a los dos numeros de 
-     * contrato disponibles: Subsidiado y contributivo     
+     * Metodo para la **creacion de radicados** de acuerdo a los dos numeros de 
+     * contrato disponibles: Subsidiado y Contributivo.
      */
     async createRadicados() {
         const page = this.page
@@ -132,15 +139,17 @@ export class CooSaludBot {
 
             this.radicacionCodes = radicacionCodes
             return radicacionCodes
-        } catch (err: any) {
-            this.success = false
-            this.message = `Error al crear la radicacion: ${formatError(err.message)}`
-            return
+        } catch (err) {
+            if (err instanceof Error) {
+                this.success = false
+                this.message = `Error al crear la radicacion: ${formatError(err.message)}`
+                return
+            }
         }
     }
 
     /**
-     * Metodo para el cargue de archivos de una factura procesada al sftp de la plataforma
+     * Metodo para el cargue de archivos de una factura procesada al sftp de la plataforma.
      * @param {billDataType} billData Objeto con los datos y archivos de la factura      
      */
     async uploadBill(billData: BillDataType) {
@@ -171,12 +180,14 @@ export class CooSaludBot {
 
             billData.message = 'Factura, RIPS & HEV cargados en sftp'
             return billData
-        } catch (err: any) {
+        } catch (err) {
             await sftp.end()
-            console.error(err.message)
-            billData.success = false
-            billData.status = 'SFTP_ERROR'
-            billData.message = `Error al cargar archivos en sftp: ${formatError(err.message)}`
+            if (err instanceof Error) {
+                console.error(err.message)
+                billData.success = false
+                billData.status = 'SFTP_ERROR'
+                billData.message = `Error al cargar archivos en sftp: ${formatError(err.message)}`
+            }
             return billData
         } finally {
             await sftp.end()
@@ -184,66 +195,115 @@ export class CooSaludBot {
     }
 
     /**
-     * Metodo para obtener los datos de un pre radicado recien creado
-     * descargando el archivo excel de la plataforma
-     * @param {string} code Codigo generado del pre-radicado recien creado.
+     * Metodo para **obtener los datos de un preradicado** recien creado,
+     * descargando el archivo excel de la plataforma.
+     * @param {string} code Codigo generado del pre-radicado
      * @param {number} billsNum Cantidad de facturas del pre-radicado 
      */
     async getPreRadicadoData(code: string, billsNum: number): Promise<ExcelRowData | undefined> {
-        const page = this.page
         try {
             await this.login()
             if (!this.success) return
 
-            await page.goto('https://vco.ctamedicas.com/app/radicaciones')
+            await this.page.goto('https://vco.ctamedicas.com/app/radicaciones')
 
             let data: ExcelRowData | undefined = undefined
-            let dataRowNumber = 0
             let attempts = 0
-            while (attempts < 3 && !dataRowNumber) {
-                const downloadExcelBtn = page.locator('.btn.buttons-excel')
+            while (attempts < 3 && !data) {
+                const downloadExcelBtn = this.page.locator('.btn.buttons-excel')
                 const [download] = await Promise.all([
-                    page.waitForEvent('download'),
+                    this.page.waitForEvent('download'),
                     downloadExcelBtn.click()
                 ])
                 const downloadPath = await download.path()
                 const fileBuffer = fs.readFileSync(downloadPath)
 
-                // Format buffer
-                const nodeBuffer = Buffer.from(fileBuffer)
-                // Create excel
+                // Load excel
                 const workbook = new ExcelJS.Workbook()
-                await workbook.xlsx.load(nodeBuffer as any)
+                await workbook.xlsx.load(fileBuffer as any)
                 const worksheet = workbook.getWorksheet(1)
 
                 // Find row code                
                 worksheet?.eachRow((row, rowNumber) => {
                     const codeCell = row.getCell(5).value
                     if (code === codeCell) {
-                        dataRowNumber = rowNumber
                         row.getCell(9).value = billsNum
                         row.getCell(13).value = null
+                        data = worksheet?.getRow(rowNumber).values as ExcelRowData
                     }
                 })
                 // Data
-                data = worksheet?.getRow(dataRowNumber).values as ExcelRowData | undefined
                 attempts++
             }
-            if (!data || !data.length) throw new Error('No se encontro el pre-radicado')
+            if (!data) throw new Error('No se encontro el pre-radicado')
 
             return data
-        } catch (err: any) {
-            console.error(err)
-            this.success = false
-            this.message = `Error al obtener datos del pre-radicado: ${err.message}`
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err)
+                this.success = false
+                this.message = `Error al obtener datos del pre-radicado: ${err.message}`
+                return
+            }
         }
     }
 
     /**
-     * Metodo para generar un archivo excel con las facturas de un 'pre-radicado' despues de pasar a estado 'radicado'
+     * Metodo para obtener todos los datos de los preradicados proporcionados
+     * @param codes Lista de preradicados a buscar.
+     */
+    async getPreRadicadosData(codes: string[]) {
+        try {
+            await this.login()
+            if (!this.success) return
+
+            await this.page.goto('https://vco.ctamedicas.com/app/radicaciones')
+
+            const data: ExcelRowData[] = []
+            let attempts = 0
+            while (attempts < 3 && !data.length) {
+                // Download
+                const downloadExcelBtn = this.page.locator('.btn.buttons-excel')
+                const [download] = await Promise.all([
+                    this.page.waitForEvent('download'),
+                    downloadExcelBtn.click()
+                ])
+                const downloadPath = await download.path()
+                const fileBuffer = fs.readFileSync(downloadPath)
+                const nodeBuffer = Buffer.from(fileBuffer)
+
+                // Load excel
+                const workbook = new ExcelJS.Workbook()
+                await workbook.xlsx.load(nodeBuffer as any)
+                const worksheet = workbook.getWorksheet(1)
+
+                // Find codes             
+                worksheet?.eachRow((row) => {
+                    const codeCell = row.getCell(5).value as string
+                    if (codes.includes(codeCell)) {
+                        const rowValues = row.values as ExcelJS.CellValue[]
+                        data.push(rowValues.slice(1, 13))
+                    }
+                })
+                attempts++
+            }
+            if (!data.length) throw new Error('No se encontraron los pre-radicados')
+
+            return data
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err)
+                this.success = false
+                this.message = `Error al obtener datos de los pre-radicados: ${err.message}`
+            }
+        }
+    }
+
+    /**
+     * Metodo para generar un archivo excel con las facturas de un 'pre-radicado' despues de pasar a estado 'radicado'.
      * @param {string} pre_radicado Codigo del pre_radicado generado      
      */
-    async getRadicado(pre_radicado: string) {
+    private async createRadicadoFile(pre_radicado: string) {
         try {
             await this.login()
             if (!this.success) return
@@ -284,8 +344,12 @@ export class CooSaludBot {
                 }
                 await workbook.xlsx.writeFile(`facturas_${radicado}.xlsx`)
             }
-        } catch (error) {
-
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err)
+                this.success = false
+                this.message = `Error al generar archivo: ${err.message}`
+            }
         }
     }
 }

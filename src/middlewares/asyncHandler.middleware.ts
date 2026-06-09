@@ -4,7 +4,7 @@ type AsyncFn = (
     req: Request<{ id: string, code: string }>,
     res: Response,
     next: NextFunction
-) => Promise<any>
+) => Promise<unknown>
 
 /**
  * Try catch para los controladores

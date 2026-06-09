@@ -1,15 +1,13 @@
-import * as IPSService from '@/modules/IPS/ips.service'
-import * as EPSService from '@/modules/EPS/eps.service'
-import * as coosaludService from '@/Bot/EPS/CooSalud/coosalud.service'
-import * as executionService from './execution.service'
-import { BillsCodesType, executionDataType, ExecutionMetadataType, GetRadicadosDataType } from './execution.types'
 import { asyncHandler } from '@/middlewares'
-import { getDateTime } from '@/utils/dates'
-import { Workflows } from '@/Bot/config/config'
-import CooSaludBot from '@/Bot/EPS/CooSalud'
 import { execPlaywright, newContext } from '@/Bot'
-import HorisoesBot from '@/Bot/IPS/Horisoes'
+import CooSaludBot from '@/Bot/EPS/CooSalud'
+import { getDateTime } from '@/utils/dates'
+import { ExecutionDataType } from './execution.types'
+import { HorisoesCoosaludMetadataType } from '@/Bot/types'
+import * as executionService from './execution.service'
+import { HorisoesCoosaludServices } from '@/Bot/Workflows/horisoes-coosalud.workflow'
 
+//* Main
 export const executions = asyncHandler(async (_req, res) => {
     const allExecutions = await executionService.executions()
 
@@ -41,29 +39,42 @@ export const getExecution = asyncHandler(async (req, res) => {
     })
 })
 
-//* Main
-export const createExecution = asyncHandler(async (req, res) => {
-    const bills: BillsCodesType = req.body.bills
-    const data: executionDataType = req.body
-    const { ipsCode, epsCode } = data
+/**
+ * Endpoint para la ejecucion de **tests**.
+ */
+export const Test = asyncHandler(async (req, res) => {
 
-    //* Find IPS/EPS
-    const IPSData = await IPSService.getIPSByCode(ipsCode)
-    const EPSData = await EPSService.getEPSByCode(epsCode)
-    if (!IPSData || !EPSData) return res.status(404).json({
-        message: !IPSData ? 'No se encontro la IPS proporcionada' : 'No se encontro la EPS proporcionada',
-        status: 404
-    })
+    const browser = await execPlaywright()
+    const context = await newContext(browser)
+    const page = await context.newPage()
 
-    //* Find IPS/EPS Workflow
-    const WorkflowReference = Workflows.find(flow => flow.ipsCode === ipsCode && flow.epsCode === epsCode)
-    if (!WorkflowReference) return res.status(409).json({
-        message: 'No se encontro el flujo de la IPS y EPS indicadas',
-        status: 409
+    const HorisoesCoosaludService = new HorisoesCoosaludServices()
+    const EPSBot = new CooSaludBot(context, page)
+
+    const preRadicados = await HorisoesCoosaludService.getPreRadicadosCreated()
+    const data = await EPSBot.getPreRadicadosData(preRadicados)
+    if (data) await HorisoesCoosaludService.updatePreRadicadosFile(data)
+
+    return res.json({
+        message: 'Executed',
+        data,
+        status: 200
     })
+})
+
+//* Bots
+
+//? HorisoesCoosalud
+/**
+ * Ejecucion principal de workflow del **'IPS Bot Horisoes'** y el **'EPS Bot Coosalud'**.
+ */
+export const HorisoesCoosaludExecution = asyncHandler(async (req, res) => {
+    const bills: string[] = req.body.bills
+    const { workflow }: ExecutionDataType = req.body
+    const { ipsCode, epsCode } = workflow
 
     //* Available Execution
-    const lastExecutions = await executionService.getLastExecutions(epsCode, ipsCode, 4)
+    const lastExecutions = await executionService.getLastExecutions(ipsCode, epsCode, 4)
     if (lastExecutions.length) {
         const rangSupDate = new Date()
         const rangInfDate = new Date()
@@ -81,7 +92,7 @@ export const createExecution = asyncHandler(async (req, res) => {
     }
 
     //* Workflow run initiator | Creation of flow and jobs
-    const WorkflowInitiator = new WorkflowReference.initiator(bills)
+    const WorkflowInitiator = new workflow.initiator(bills)
     await WorkflowInitiator.run()
 
     if (!WorkflowInitiator.success) return res.status(WorkflowInitiator.status).json({
@@ -111,16 +122,9 @@ export const createExecution = asyncHandler(async (req, res) => {
  * Endpoint para obtener todas las facturas procesadas y fallidas hasta la fecha; 
  * incluye pre-radicados y las facturas subidas en ellos.
  */
-export const getAllProcessed = asyncHandler(async (req, res) => {
-    const { epsCode, ipsCode }: GetRadicadosDataType = req.body
-
-    //* Find IPS/EPS
-    const IPSData = await IPSService.getIPSByCode(ipsCode)
-    const EPSData = await EPSService.getEPSByCode(epsCode)
-    if (!IPSData || !EPSData) return res.status(404).json({
-        message: !IPSData ? 'No se encontro la IPS proporcionada' : 'No se encontro la EPS proporcionada',
-        status: 404
-    })
+export const HorisoesCoosaludProccesed = asyncHandler(async (req, res) => {
+    const { workflow }: ExecutionDataType = req.body.workflow
+    const { ipsCode, epsCode } = workflow
 
     const processedStructure: {
         total_procesadas: number,
@@ -142,10 +146,9 @@ export const getAllProcessed = asyncHandler(async (req, res) => {
     }
     const processedStructureFaileds: string[] = []
 
-    const executions = await executionService.getExecutions(epsCode, ipsCode)
-
+    const executions = await executionService.getExecutions(ipsCode, epsCode)
     for (const execution of executions) {
-        const metadata = execution.metadata as ExecutionMetadataType
+        const metadata = execution.metadata as unknown as HorisoesCoosaludMetadataType
 
         // Total procesadas
         processedStructure.total_procesadas += metadata.total_facturas
@@ -196,90 +199,6 @@ export const getAllProcessed = asyncHandler(async (req, res) => {
     return res.json({
         message: `Ejecuciones IPS-${ipsCode} EPS-${epsCode}`,
         data: processedStructure,
-        status: 200
-    })
-})
-
-/**
- * Endpoint para obtener todos los pre-radicados (carpetas) creados en el sftp
- */
-export const getCreatedRadicados = asyncHandler(async (req, res) => {
-    const { epsCode, ipsCode }: GetRadicadosDataType = req.body
-
-    //* Find IPS/EPS
-    const IPSData = await IPSService.getIPSByCode(ipsCode)
-    const EPSData = await EPSService.getEPSByCode(epsCode)
-    if (!IPSData || !EPSData) return res.status(404).json({
-        message: !IPSData ? 'No se encontro la IPS proporcionada' : 'No se encontro la EPS proporcionada',
-        status: 404
-    })
-
-    // Get all executions
-    const executions = await executionService.getExecutions(epsCode, ipsCode)
-
-    // Get pre-radicados codes
-    const pre_radicados = [... new Set(
-        executions.map(execution => {
-            const metadata = execution.metadata as ExecutionMetadataType
-            const codes = metadata.pre_radicados.map(pre_radicado => pre_radicado.codigo)
-            return codes
-        }).flat(1)
-    )]
-
-    // const browser = await execPlaywright()
-    // const context = await newContext(browser)
-    // const page = await context.newPage()
-    // const CooSalud = new CooSaludBot(context, page)
-    // await CooSalud.getRadicado('510347_20260517_033156')
-
-    return res.json({
-        message: 'Radicaciones obtenidas',
-        data: pre_radicados,
-        status: 200
-    })
-})
-
-/**
- * Endpoint para obtener todas las facturas cargadas en una carpeta en el sftp
- * @param {string} code Codigo del pre-radicado (carpeta).
- */
-export const getRadicadoBills = asyncHandler(async (req, res) => {
-    const { code } = req.params
-
-    const loadedBills = await coosaludService.getSftpFiles(code)
-    if (!loadedBills) return res.status(400).json({
-        message: 'No se encontro una carpeta con el codigo proporcionado',
-        status: 400
-    })
-
-    return res.json({
-        message: 'Facturas encontradas',
-        data: {
-            pre_radicado: code,
-            total_facturas: loadedBills.length,
-            facturas: loadedBills
-        },
-        status: 200
-    })
-})
-
-export const Test = asyncHandler(async (req, res) => {
-
-    const browser = await execPlaywright()
-    const context = await newContext(browser)
-    const page = await context.newPage()
-
-    const EPS = new CooSaludBot(context, page)
-    const IPS = new HorisoesBot(context, page, '')
-
-    const data = await EPS.getPreRadicadoData('503194_20260508_213521', 123)
-    if (data) await IPS.updatePreRadicadoFile(data)
-
-    await browser.close()
-
-    return res.json({
-        message: 'Executed',
-        data,
         status: 200
     })
 })

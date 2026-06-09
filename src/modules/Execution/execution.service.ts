@@ -1,13 +1,13 @@
 import prisma from '@/config/prisma'
 import { formatExecutionDate, getDateTimeDiff } from '@/utils/dates'
-import { executionDataType, executionUpdateDataType } from './execution.types'
+import { CreateExecutionDataType, FinishExecutionDataType } from './execution.types'
 
 export async function executions() {
     return (await prisma.executions.findMany({
         include: {
             status: true
         }
-    })).map(({ status, statusId, started_at, finished_at, metadata, ...data }) => ({
+    })).map(({ status, started_at, finished_at, metadata, ...data }) => ({
         ...data,
         status: status.name,
         started_at: formatExecutionDate(started_at),
@@ -26,7 +26,7 @@ export async function getExecution(id: string | undefined) {
         }
     })
     if (execution) {
-        const { status, statusId, started_at, finished_at, metadata, ...data } = execution
+        const { status, started_at, finished_at, metadata, ...data } = execution
         return {
             ...data,
             status: status.name,
@@ -38,14 +38,14 @@ export async function getExecution(id: string | undefined) {
     }
 }
 
-export async function createExecution(data: executionDataType) {
-    const { epsCode, ipsCode, metadata } = data
+export async function createExecution(data: CreateExecutionDataType) {
+    const { epsCode, ipsCode } = data
     return await prisma.executions.create({
         data: {
             ipsCode,
             epsCode,
             statusId: 1,
-            metadata,
+            metadata: {},
             started_at: new Date()
         },
         include: {
@@ -54,7 +54,7 @@ export async function createExecution(data: executionDataType) {
     })
 }
 
-export async function finishExecution(id: string | undefined, data: executionUpdateDataType) {
+export async function finishExecution(id: string | undefined, data: FinishExecutionDataType) {
     if (!id) return
     const { metadata } = data
     return await prisma.executions.update({
@@ -69,7 +69,13 @@ export async function finishExecution(id: string | undefined, data: executionUpd
     })
 }
 
-export async function getExecutions(epsCode: string, ipsCode: string, cant?: number) {
+/**
+ * Servicio para obtener las ejecuciones **finalizadas** del bot de determinada **IPS** y **EPS**.
+ * @param ipsCode Codigo de la IPS
+ * @param epsCode Codigo de la EPS
+ * @param cant Cantidad de ejecuciones a obtener (opcional, **por defecto 100**).
+ */
+export async function getExecutions(ipsCode: string, epsCode: string, cant?: number) {
     return await prisma.executions.findMany({
         where: {
             statusId: 2,
@@ -83,7 +89,13 @@ export async function getExecutions(epsCode: string, ipsCode: string, cant?: num
     })
 }
 
-export async function getLastExecutions(epsCode: string, ipsCode: string, cant?: number) {
+/**
+ * Servicio para obtener las ejecuciones **con cualquier estado** del bot de determinada **IPS** y **EPS**.
+ * @param ipsCode Codigo de la IPS
+ * @param epsCode Codigo de la EPS
+ * @param cant Cantidad de ejecuciones a obtener (opcional, **por defecto 100**).
+ */
+export async function getLastExecutions(ipsCode: string, epsCode: string, cant?: number) {
     return await prisma.executions.findMany({
         where: {
             epsCode,

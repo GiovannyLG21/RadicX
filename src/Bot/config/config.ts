@@ -7,11 +7,21 @@ export const DEFAULT_TIMEOUT = 30000
 export const NAVIGATION_TIMEOUT = 30000
 
 //* Workflows
-export const Workflows = [
-    {
+
+/**
+ * Objeto con los workflows de cada IPS.
+ */
+export const Workflows = {
+    HorisoesCoosaludWorkflow: {
         name: 'Horisoes_Coosalud_Workflow',
         ipsCode: '901749264',
         epsCode: 'EPS042',
         initiator: HorisoesCoosaludInitiator
+    },
+    HorisoesNuevaEpsWorkflow: {
+        name: 'Horisoes_NuevaEPS_Workflow',
+        ipsCode: '901749264',
+        epsCode: 'epsCode',
+        initiator: HorisoesCoosaludInitiator
     }
-]
+}

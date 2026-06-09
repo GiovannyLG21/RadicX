@@ -1,9 +1,10 @@
 import util from 'node:util'
 import { Page, BrowserContext } from 'playwright'
 import { LoginDataType } from './types'
-import {drive} from '@/Bot/config/googleapis'
+import { drive } from '@/Bot/config/googleapis'
 
 //* Playwright
+
 /**
  * @class Clase Base para el logueo en plataformas
  * @param {LoginDataType} data Objeto con los datos para el login y navegacion
@@ -47,22 +48,21 @@ export class LoginPage {
     }
 }
 
-export async function getPage(context: BrowserContext) {
-    const actualPages = context.pages()
-    if (actualPages.length > 0) return actualPages[0]!
-    return await context.newPage()
-}
-
 export async function delay(ms: number) {
     return new Promise(resolve =>
         setTimeout(resolve, ms)
     )
 }
 
-export function formatError(error: any) {
+export function formatError(error: string) {
     return util.stripVTControlCharacters(error)
 }
 
+/**
+ * Funcion para buscar y descargar un archivo en una carpeta de Google Drive.
+ * @param folderId Id de la carpeta que contiene el archivo
+ * @param fileName Nombre del archivo buscado
+ */
 export async function downloadDriveFile(folderId: string, fileName: string): Promise<Buffer | undefined> {
     const res = await drive.files.list({
         q: `

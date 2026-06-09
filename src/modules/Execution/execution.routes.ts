@@ -1,27 +1,28 @@
 import { Router } from 'express'
-import { upload, validateScheme } from '@/middlewares'
-import { executionScheme } from './execution.scheme'
+import { upload } from '@/middlewares'
+import { validateBillsFile } from '@/Bot/middlewares'
+import { Workflows } from '@/Bot/config/config'
+import { validateWorkflow } from './execution.middleware'
 import * as executionController from './execution.controller'
-import { validateBillsFile } from './execution.middleware'
 
 const router: Router = Router()
 
+//* Main
 router.get('/test', executionController.Test)
 
-router.post('/radicados', executionController.getCreatedRadicados)
+router.get('/', executionController.executions)
+router.get('/:id', executionController.getExecution)
 
-router.route('/')
-    .get(executionController.executions)
-    .post(upload.single('bills'),
-        validateBillsFile,
-        validateScheme(executionScheme),
-        executionController.createExecution)
 
-router.route('/:id')
-    .get(executionController.getExecution)
+//* Bots
+router.get('/horisoes/coosalud',
+    validateWorkflow(Workflows.HorisoesCoosaludWorkflow),
+    executionController.HorisoesCoosaludProccesed)
 
-router.get('/radicado/:code', executionController.getRadicadoBills)
-
-router.post('/processed', executionController.getAllProcessed)
+router.post('/horisoes/coosalud/execute',
+    validateWorkflow(Workflows.HorisoesCoosaludWorkflow),
+    upload.single('bills'),
+    validateBillsFile,
+    executionController.HorisoesCoosaludExecution)
 
 export default router
