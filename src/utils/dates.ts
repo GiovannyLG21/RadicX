@@ -17,12 +17,12 @@ export const isValidDate = (date: string) => {
     return !isNaN(Date.parse(date))
 }
 
-export function formatDate(date: Date | null): string {
+export function formatDate(date: Date | null, reversed?: 'RESVERSED'): string {
     if (!date) return ''
     const day = String(date.getDate()).padStart(2, '0')
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const year = date.getFullYear()
-    return `${day}-${month}-${year}`
+    return !reversed ? `${day}-${month}-${year}` : `${year}-${month}-${day}`
 }
 
 export function formatExecutionDate(date: Date | null): string {

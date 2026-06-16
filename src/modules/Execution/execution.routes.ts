@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { upload } from '@/middlewares'
 import { validateBillsFile } from '@/Bot/middlewares'
-import { Workflows } from '@/Bot/config/config'
+import { Workflows } from '@/Bot/index'
 import { validateWorkflow } from './execution.middleware'
 import * as executionController from './execution.controller'
 

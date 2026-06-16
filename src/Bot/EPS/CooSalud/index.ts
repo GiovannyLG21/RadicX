@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import fs from 'fs'
 import { BrowserContext, Page } from 'playwright'
-import Client from 'ssh2-sftp-client'
+import SftpClient from 'ssh2-sftp-client'
 import ExcelJS from 'exceljs'
-import { CONTRACTS, CREDENTIALS, SFTP_CREDENTIALS } from './config/config'
+import { CONTRACTS, CREDENTIALS, SFTP_CONNECTION } from './config/config'
 import { delay, formatError, LoginPage } from '@/Bot/utils'
 import { BillDataType, ExcelRowData, LoginDataType, RadicacionCodesType } from '@/Bot/types'
-import * as coosaludService from './coosalud.service'
+import path from 'path'
+import { formatDate } from '@/utils/dates'
 
 /**
  * @class **Clase Bot perteneciente a la EPS 'CooSalud'.**  
@@ -22,7 +23,7 @@ class CooSaludBot {
     /**
      * @param {Client} sftp Cliente para el manejo del sftp.
      */
-    private sftp: Client
+    private sftp: SftpClient
 
     /**
      * Variable de estado del bot
@@ -56,7 +57,7 @@ class CooSaludBot {
         private page: Page
     ) {
         this.epsCode = 'EPS042'
-        this.sftp = new Client()
+        this.sftp = new SftpClient()
         this.success = true
         this.message = ''
         this.loginData = {
@@ -88,6 +89,20 @@ class CooSaludBot {
                 this.message = `Error al iniciar sesion en CooSalud: ${formatError(err.message)}`
             }
         }
+    }
+
+    /**
+     * Metodo para crear un cliente sftp con conexion.
+     */
+    static async connectSftp() {
+        const sftp = new SftpClient()
+        await sftp.connect({
+            host: SFTP_CONNECTION.host,
+            port: SFTP_CONNECTION.port,
+            username: SFTP_CONNECTION.user,
+            password: SFTP_CONNECTION.password
+        })
+        return sftp
     }
 
     /**
@@ -157,10 +172,10 @@ class CooSaludBot {
         const sftp = this.sftp
         try {
             await sftp.connect({
-                host: 'vco.ctamedicas.com',
-                port: 22,
-                username: SFTP_CREDENTIALS.user,
-                password: SFTP_CREDENTIALS.password
+                host: SFTP_CONNECTION.host,
+                port: SFTP_CONNECTION.port,
+                username: SFTP_CONNECTION.user,
+                password: SFTP_CONNECTION.password
             })
 
             const bill = billData.bill
@@ -197,19 +212,19 @@ class CooSaludBot {
     /**
      * Metodo para **obtener los datos de un preradicado** recien creado,
      * descargando el archivo excel de la plataforma.
-     * @param {string} code Codigo generado del pre-radicado
-     * @param {number} billsNum Cantidad de facturas del pre-radicado 
+     * @param {string} code Codigo del preradicado
+     * @param {number} billsNum Cantidad de facturas del preradicado 
      */
-    async getPreRadicadoData(code: string, billsNum: number): Promise<ExcelRowData | undefined> {
+    async getPreRadicadoData(code: string, billsNum?: number): Promise<ExcelRowData | undefined> {
         try {
             await this.login()
             if (!this.success) return
 
             await this.page.goto('https://vco.ctamedicas.com/app/radicaciones')
 
-            let data: ExcelRowData | undefined = undefined
+            let data: ExcelRowData = []
             let attempts = 0
-            while (attempts < 3 && !data) {
+            while (attempts < 3 && !data.length) {
                 const downloadExcelBtn = this.page.locator('.btn.buttons-excel')
                 const [download] = await Promise.all([
                     this.page.waitForEvent('download'),
@@ -225,10 +240,14 @@ class CooSaludBot {
 
                 // Find row code                
                 worksheet?.eachRow((row, rowNumber) => {
-                    const codeCell = row.getCell(5).value
-                    if (code === codeCell) {
-                        row.getCell(9).value = billsNum
-                        row.getCell(13).value = null
+                    const codeCell = String(row.getCell(5).value).trim()
+                    if (codeCell === code) {
+                        // Fecha radicacion column
+                        const fechaRadicacion = row.getCell(8).value as string
+                        if (fechaRadicacion) row.getCell(8).value = formatDate(new Date(fechaRadicacion))
+                        // Cantidad facturas column
+                        if (billsNum) row.getCell(9).value = billsNum
+
                         data = worksheet?.getRow(rowNumber).values as ExcelRowData
                     }
                 })
@@ -237,7 +256,7 @@ class CooSaludBot {
             }
             if (!data) throw new Error('No se encontro el pre-radicado')
 
-            return data
+            return data.slice(1, 13)
         } catch (err) {
             if (err instanceof Error) {
                 console.error(err)
@@ -249,8 +268,9 @@ class CooSaludBot {
     }
 
     /**
-     * Metodo para obtener todos los datos de los preradicados proporcionados
-     * @param codes Lista de preradicados a buscar.
+     * Metodo para **obtener los datos de preradicados**,
+     * descargando el archivo excel de la plataforma.
+     * @param {string} codes Lista de preradicados a buscar.
      */
     async getPreRadicadosData(codes: string[]) {
         try {
@@ -279,8 +299,12 @@ class CooSaludBot {
 
                 // Find codes             
                 worksheet?.eachRow((row) => {
-                    const codeCell = row.getCell(5).value as string
+                    const codeCell = String(row.getCell(5).value).trim()
                     if (codes.includes(codeCell)) {
+                        // Fecha radicacion column
+                        const fechaRadicacion = row.getCell(8).value as string
+                        if (fechaRadicacion) row.getCell(8).value = formatDate(new Date(fechaRadicacion))
+
                         const rowValues = row.values as ExcelJS.CellValue[]
                         data.push(rowValues.slice(1, 13))
                     }
@@ -294,63 +318,85 @@ class CooSaludBot {
             if (err instanceof Error) {
                 console.error(err)
                 this.success = false
-                this.message = `Error al obtener datos de los pre-radicados: ${err.message}`
+                this.message = `Error al obtener datos de los pre-radicados: ${formatError(err.message)}`
             }
         }
     }
 
     /**
-     * Metodo para generar un archivo excel con las facturas de un 'pre-radicado' despues de pasar a estado 'radicado'.
-     * @param {string} pre_radicado Codigo del pre_radicado generado      
+     * Metodo para obtener el acta de un radicado.
+     * @param code Codigo del radicado
      */
-    private async createRadicadoFile(pre_radicado: string) {
+    async getRadicadoCertificate(code: string) {
         try {
             await this.login()
             if (!this.success) return
 
             await this.page.goto('https://vco.ctamedicas.com/app/radicaciones')
-            // Set 'Mostrar' in 'Todos'
-            await this.page.locator('[name="tablaRadicaciones_length"]').selectOption('-1')
-            // Table rows
-            const radicaciones = this.page.locator('#tablaRadicaciones tbody tr')
-            const row = radicaciones.filter({
-                hasText: pre_radicado
-            })
-            const radicado = await row.locator('td').nth(9).textContent()
 
-            if (radicado) {
-                const workbook = new ExcelJS.Workbook()
-                const sheet = workbook.addWorksheet(radicado)
+            const initDate = '2026-01-01'
+            const actualDate = formatDate(new Date(), 'RESVERSED')
+            //Set 'Filtro Fecha'
+            await this.page.locator('#filterBy').selectOption('radicacion.creacion_fecha')
+            // Set 'Fecha Inicio'
+            await this.page.locator('#fechaIni').fill(initDate)
+            // Set 'Fecha Fin'
+            await this.page.locator('#fechaFin').fill(actualDate)
+            // Button 'Consultar'
+            await this.page.locator('#btBolsaSearchRads').click()
+            // Table search
+            await this.page.locator('#tablaRadicaciones_filter input').fill(code)
+            //!Verificar si el radicado existe en la tabla
 
-                sheet.columns = [
-                    { header: 'Fecha', key: 'date', width: 30 },
-                    { header: 'Factura', key: 'bill', width: 10 },
-                    { header: 'EPS', key: 'eps', width: 10 },
-                    { header: 'Modalidad', key: 'type', width: 10 },
-                    { header: 'Usuario', key: 'origin', width: 10 },
-                ];
+            // Table
+            const radicadosRow = this.page.locator('#tablaRadicaciones tbody tr').first()
+            const radicadoCertificateBtn = radicadosRow.locator('td').nth(11).locator('button')
 
-                const bills = await coosaludService.getSftpFiles(pre_radicado)
-                if (bills) {
-                    for (const bill of bills) {
-                        sheet.addRow({
-                            date: '20/05/2026',
-                            bill,
-                            eps: 'COOSALUD ENTIDAD PROMOTORA DE SALUD S.A',
-                            type: 'PAQUETE',
-                            origin: 'HorisoesBot'
-                        })
-                    }
-                }
-                await workbook.xlsx.writeFile(`facturas_${radicado}.xlsx`)
+            const [newPage] = await Promise.all([
+                this.context.waitForEvent('page'),
+                radicadoCertificateBtn.click()
+            ])
+
+            const iframeSrc = await newPage.locator('iframe').getAttribute('src')
+            const fileUrl = `https://vco.ctamedicas.com/app/${iframeSrc}`
+            const fileDownload = await fetch(fileUrl)
+            if (!fileDownload.headers.get('content-type')?.includes('application/pdf')) throw new Error('Archivo PDF corrupto')
+
+            const fileBuffer = Buffer.from(await fileDownload.arrayBuffer())
+
+            return {
+                filename: `Acta Radicacion ${code}.pdf`,
+                buffer: fileBuffer
             }
+
         } catch (err) {
             if (err instanceof Error) {
                 console.error(err)
                 this.success = false
-                this.message = `Error al generar archivo: ${err.message}`
+                this.message = `Error al obtener el acta del radicado: ${formatError(err.message)}`
             }
         }
+    }
+
+    /**
+     * Metodo para obtener una carpeta del sftp y guardarla localmente.
+     * @param sftp Cliente sftp con conexion
+     * @param folderName Nombre de la carpeta
+     */
+    static async getSftpFolder(sftp: SftpClient, folderName: string) {
+        const localPath = path.join(process.cwd(), 'local')
+        fs.mkdirSync(localPath, { recursive: true })
+
+        const folderPath = path.join(process.cwd(), 'local', folderName)
+        const actualFolder = fs.existsSync(folderPath)
+        if (actualFolder) return true
+
+        const existsFolder = await sftp.exists(`/${folderName}`)
+        if (!existsFolder) throw new Error('Carpeta no encontrada en sftp')
+
+        await sftp.downloadDir(`/${folderName}`, `./local/${folderName}`)
+
+        return true
     }
 }
 

@@ -1,11 +1,12 @@
 import { asyncHandler } from '@/middlewares'
-import { execPlaywright, newContext } from '@/Bot'
-import CooSaludBot from '@/Bot/EPS/CooSalud'
+import { execPlaywright, newContext } from '@/Bot/config/browser'
 import { getDateTime } from '@/utils/dates'
 import { ExecutionDataType } from './execution.types'
 import { HorisoesCoosaludMetadataType } from '@/Bot/types'
 import * as executionService from './execution.service'
 import { HorisoesCoosaludServices } from '@/Bot/Workflows/horisoes-coosalud.workflow'
+import fs from 'fs'
+import { HorisoesCoosaludScheduler } from '@/Bot/config/queues'
 
 //* Main
 export const executions = asyncHandler(async (_req, res) => {
@@ -42,22 +43,106 @@ export const getExecution = asyncHandler(async (req, res) => {
 /**
  * Endpoint para la ejecucion de **tests**.
  */
+export const TestMain = asyncHandler(async (req, res) => {
+
+    // const browser = await execPlaywright()
+    // const context = await newContext(browser)
+    // const page = await context.newPage()
+
+
+
+    return res.json({
+        message: 'Executed',
+        status: 200
+    })
+})
+
+// TestAddJobSchedule
 export const Test = asyncHandler(async (req, res) => {
+
+    // const browser = await execPlaywright()
+    // const context = await newContext(browser)
+    // const page = await context.newPage()
+    await HorisoesCoosaludScheduler.obliterate({ force: true })
+    await HorisoesCoosaludScheduler.add(
+        'check-preradicados-job',
+        {},
+        {
+            attempts: 5,
+            backoff: {
+                type: 'exponential',
+                delay: 3000
+            },
+            removeOnComplete: false,
+            removeOnFail: false
+
+        }
+    )
+
+    return res.json({
+        message: 'Executed',
+        status: 200
+    })
+})
+
+//TestHorisoesCoosaludRadicadoCertificate
+export const TestHorisoesCoosaludRadicadoCertificate = asyncHandler(async (req, res) => {
 
     const browser = await execPlaywright()
     const context = await newContext(browser)
     const page = await context.newPage()
 
     const HorisoesCoosaludService = new HorisoesCoosaludServices()
-    const EPSBot = new CooSaludBot(context, page)
+    const EPSService = HorisoesCoosaludService.EPSServices(context, page)
 
-    const preRadicados = await HorisoesCoosaludService.getPreRadicadosCreated()
-    const data = await EPSBot.getPreRadicadosData(preRadicados)
-    if (data) await HorisoesCoosaludService.updatePreRadicadosFile(data)
+    const radicado = 'RAD-525920_20260603_095449'
+    const radicadoCertificate = await EPSService.getRadicadoCertificate(radicado)
+    if (radicadoCertificate) {
+        fs.writeFileSync(radicadoCertificate?.filename, radicadoCertificate?.buffer)
+    }
 
     return res.json({
         message: 'Executed',
-        data,
+        data: radicadoCertificate?.filename,
+        status: 200
+    })
+})
+
+//TestHorisoesCoosaludScheduler
+export const TestHorisoesCoosaludScheduler = asyncHandler(async (req, res) => {
+
+    const browser = await execPlaywright()
+    const context = await newContext(browser)
+    const page = await context.newPage()
+
+    const HorisoesCoosaludService = new HorisoesCoosaludServices()
+    const EPSService = HorisoesCoosaludService.EPSServices(context, page)
+
+    // Single
+    // const preRadicado = '525922_20260602_194032'
+    // const preRadicadoData = await EPSService.getPreRadicadoData(preRadicado)
+    // if (!preRadicadoData) throw new Error('')
+    // await HorisoesCoosaludService.insertPreRadicadoData(preRadicadoData)
+
+
+    // Multiple
+    const preRadicados = await HorisoesCoosaludService.getPreRadicadosCreated()
+    // const preRadicados = ['525920_20260602_193844']
+    const preRadicadosData = await EPSService.getPreRadicadosData(preRadicados)
+    if (!preRadicadosData) return res.status(500).json({ message: EPSService.message })
+
+    const updatePreRadicados = await HorisoesCoosaludService.updatePreRadicadosFile(preRadicadosData)
+    if (!updatePreRadicados) return res.status(500).json({ message: HorisoesCoosaludService.message })
+
+    const createRadicadosSheet = await HorisoesCoosaludService.createRadicadosSheet(updatePreRadicados)
+    if (!createRadicadosSheet) return res.status(500).json({ message: HorisoesCoosaludService.message })
+
+    const uploadRadicadoFiles = await HorisoesCoosaludService.updateRadicadosFolder(context, page, updatePreRadicados)
+    if (!uploadRadicadoFiles) return res.status(500).json({ message: HorisoesCoosaludService.message })
+
+    return res.json({
+        message: 'Executed',
+        data: updatePreRadicados,
         status: 200
     })
 })

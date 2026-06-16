@@ -1,10 +1,9 @@
 import { BrowserContext, Page } from 'playwright'
 import BillFlow from './modules/bill.flow'
 import RIPSFlow from './modules/rips.flow'
-import { BillDataType, ExcelRowData, LoginDataType } from '@/Bot/types'
-import { LoginPage, downloadDriveFile, formatError } from '@/Bot/utils'
-import { CREDENTIALS, EXCEL_FILE_ID, HEV_FOLDER_ID } from './config/config'
-import { sheets } from '@/Bot/config/googleapis'
+import { BillDataType, LoginDataType } from '@/Bot/types'
+import { LoginPage, formatError, googleapis } from '@/Bot/utils'
+import { CREDENTIALS, HEV_FOLDER_ID } from './config/config'
 
 /**
  * @class **Clase Bot** perteneciente a la **IPS Horisoes**.
@@ -172,7 +171,7 @@ class HorisoesBot {
             const userDocNum: string = fileDataParse['usuarios'][0]['numDocumentoIdentificacion']
             const userDoc = userDocType + userDocNum
 
-            const HEVFile = await downloadDriveFile(HEV_FOLDER_ID, `${userDoc}_FRAMINGHAM_signed.pdf`)
+            const HEVFile = await googleapis.drive.downloadDriveFile(HEV_FOLDER_ID, `${userDoc}_FRAMINGHAM_signed.pdf`)
             if (!HEVFile) {
                 billData.success = false
                 billData.status = 'NOT_FOUND'
@@ -207,32 +206,6 @@ class HorisoesBot {
         this.billData.success = flow.success
         this.billData.status = flow.status
         this.billData.message = flow.message
-    }
-
-    /**
-    * Metodo para actualizar el archivo excel (archivo de seguimiento en drive) insertando un nuevo preradicado.
-    * @param {ExcelRowData} data Array con datos del preradicado.
-    */
-    async updatePreRadicadoData(data: ExcelRowData) {
-        try {
-            await sheets.spreadsheets.values.append({
-                spreadsheetId: EXCEL_FILE_ID,
-                range: 'Radicados!A:I',
-                valueInputOption: 'RAW',
-                requestBody: {
-                    values: [data.slice(1)]
-                }
-            })
-
-            return true
-        } catch (err) {
-            if (err instanceof Error) {
-                console.error(err)
-                this.success = false
-                this.message = `Error al actualizar archivo pre-radicados: ${err.message}`
-                return false
-            }
-        }
     }
 }
 

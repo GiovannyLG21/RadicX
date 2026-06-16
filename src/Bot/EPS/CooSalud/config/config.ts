@@ -5,7 +5,9 @@ export const CREDENTIALS = {
     password: 'coosalud2025*'
 }
 
-export const SFTP_CREDENTIALS = {
+export const SFTP_CONNECTION = {
+    host: 'vco.ctamedicas.com',
+    port: 22,
     user: '901011395',
     password: 'jhAkif5ljahsdñ'
 }

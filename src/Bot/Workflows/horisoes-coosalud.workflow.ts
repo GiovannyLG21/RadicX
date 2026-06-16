@@ -1,14 +1,18 @@
+import fs from 'fs'
+import path from 'path'
+import { EXCEL_FILE_ID, RADICADOS_FOLDER_ID } from '../IPS/Horisoes/config/config'
 import { BrowserContext, Page } from 'playwright'
+import { execPlaywright, newContext } from '../config/browser'
 import CooSaludBot from '../EPS/CooSalud'
 import HorisoesBot from '../IPS/Horisoes'
-import { execPlaywright, newContext } from '..'
-import { playwrightFlow } from '../config/flows'
-import { BillDataType, ExcelRowData, FlowChildJobType, HorisoesCoosaludMetadataType, RadicacionCodesType } from '../types'
-import { playwrightQueue } from '../config/queues'
-import { CreateExecutionReturnType } from '@/modules/Execution/execution.types'
-import * as executionService from '@/modules/Execution/execution.service'
 import { sheets } from '../config/googleapis'
-import { EXCEL_FILE_ID } from '../IPS/Horisoes/config/config'
+import { HorisoesCoosaludFlow } from '../config/flows'
+import { HorisoesCoosaludQueue } from '../config/queues'
+import { CreateExecutionReturnType } from '@/modules/Execution/execution.types'
+import { googleapis } from '@/Bot/utils'
+import { getFileType } from '@/utils/string'
+import { BillDataType, ExcelRowData, FlowChildJobType, HorisoesCoosaludMetadataType, RadicacionCodesType } from '../types'
+import * as executionService from '@/modules/Execution/execution.service'
 
 /**
  * @class **Iniciador** de un workflow para la creacion de un Flow y sus Jobs. 
@@ -47,11 +51,6 @@ export class HorisoesCoosaludInitiator {
      */
     private maxJobs: number
 
-    /**
-     * @param {RadicacionCodesType} radicacionCodes Array de objetos con los codigos de radicacion creados
-     */
-    private radicacionCodes: RadicacionCodesType
-
     constructor(
         private bills: string[]
     ) {
@@ -61,7 +60,6 @@ export class HorisoesCoosaludInitiator {
         this.status = 200
         this.message = ''
         this.maxJobs = 4000
-        this.radicacionCodes = []
     }
 
     /**
@@ -70,7 +68,7 @@ export class HorisoesCoosaludInitiator {
      * Este metodo evita la insercion de nuevos Jobs si es superada la cuota maxima definida en **maxJobs**.
      */
     private async availableSpace() {
-        const waitingJobs = await playwrightQueue.getWaitingCount()
+        const waitingJobs = await HorisoesCoosaludQueue.getWaitingCount()
         const maxCovered = waitingJobs + this.bills.length > this.maxJobs
         if (maxCovered) {
             this.success = false
@@ -101,7 +99,6 @@ export class HorisoesCoosaludInitiator {
         }
         await browser.close()
 
-        this.radicacionCodes = radicacionCodes
         return radicacionCodes
     }
 
@@ -116,19 +113,21 @@ export class HorisoesCoosaludInitiator {
 
     /**
      * Creacion de Jobs apartir de las facturas proporcionadas     
+     * @param {CreateExecutionReturnType} execution Datos de la ejecucion creada
+     * @param {RadicacionCodesType} radicacionCodes Datos de los codigos de radicados
      */
-    private createJobs() {
+    private createJobs(execution: CreateExecutionReturnType, radicacionCodes: RadicacionCodesType) {
         const Jobs: FlowChildJobType[] = this.bills.map((bill, index) => ({
-            name: `process-bill-${bill}`,
-            queueName: 'playwright-queue',
+            name: `horisoes_coosalud_bill_${bill}`,
+            queueName: 'horisoes_coosalud_queue',
             data: {
-                executionId: this.execution?.id,
-                flow: `bills-flow-${this.execution?.id}`,
+                executionId: execution.id,
+                flow: `horisoes_coosalud_flow_${execution.id}`,
                 bill,
-                radicacionCodes: this.radicacionCodes
+                radicacionCodes
             },
             opts: {
-                jobId: `${index + 1}_${bill}_${this.execution?.id}`,
+                jobId: `${index + 1}_horisoes_coosalud_${bill}_${execution.id}`,
                 attempts: 5,
                 backoff: {
                     type: 'exponential',
@@ -155,17 +154,17 @@ export class HorisoesCoosaludInitiator {
 
         const execution = await this.createExecution()
 
-        const Jobs = this.createJobs()
+        const Jobs = this.createJobs(execution, radicacionCodes)
 
-        await playwrightFlow.add({
-            name: `bills-flow-${execution?.id}`,
+        await HorisoesCoosaludFlow.add({
+            name: `horisoes_coosalud_flow_${execution.id}`,
             data: {
-                executionId: execution?.id,
+                executionId: execution.id,
                 radicacionCodes: radicacionCodes,
                 bills_cant: this.bills.length,
                 bills: this.bills
             },
-            queueName: 'playwright-flow',
+            queueName: 'horisoes_coosalud_flow',
             children: Jobs,
             opts: {
                 attempts: 5,
@@ -175,8 +174,6 @@ export class HorisoesCoosaludInitiator {
                 }
             }
         })
-
-
     }
 }
 
@@ -188,12 +185,12 @@ export class HorisoesCoosaludWorkflow {
     /**
      * @class **Clase Bot** perteneciente a la **IPS Horisoes**.
      */
-    private IPS: HorisoesBot
+    private IPSBot: HorisoesBot
 
     /**
      * @class **Clase Bot** perteneciente a la **EPS CooSalud**.
      */
-    private EPS: CooSaludBot
+    private EPSBot: CooSaludBot
 
     /**
      * @param {BillDataType} billData Objeto con los datos y archivos de la factura procesada/por procesar.
@@ -206,29 +203,31 @@ export class HorisoesCoosaludWorkflow {
         private bill: string,
         private radicacionCodes: RadicacionCodesType
     ) {
-        this.IPS = new HorisoesBot(this.context, this.page, this.bill)
-        this.EPS = new CooSaludBot(this.context, this.page)
-        this.billData = this.IPS.billData
+        this.IPSBot = new HorisoesBot(this.context, this.page, this.bill)
+        this.EPSBot = new CooSaludBot(this.context, this.page)
+        this.billData = this.IPSBot.billData
     }
 
     async run() {
-        await this.IPS.getBillFiles()
-        await this.IPS.getRipsFiles()
-        await this.IPS.getHEVFiles()
+        // Get files
+        await this.IPSBot.getBillFiles()
+        await this.IPSBot.getRipsFiles()
+        await this.IPSBot.getHEVFiles()
+        const billData = this.IPSBot.billData
 
-        this.billData = this.IPS.billData
+        // Set preradicado
+        const radicadoCode = this.radicacionCodes.find(radicado => radicado.contract == billData.contract)?.code
+        if (radicadoCode) billData.radicado = radicadoCode
 
-        const radicadoCode = this.radicacionCodes.find(radicado => radicado.contract == this.billData.contract)?.code
-        if (radicadoCode) this.billData.radicado = radicadoCode
+        // Upload bill
+        await this.EPSBot.uploadBill(billData)
 
-        await this.EPS.uploadBill(this.billData)
-
-        return this.billData
+        this.billData = billData
+        return billData
     }
 }
 
 export class HorisoesCoosaludServices {
-
     private ipsCode: string
 
     private epsCode: string
@@ -252,12 +251,15 @@ export class HorisoesCoosaludServices {
         this.message = ''
     }
 
+    EPSServices(context: BrowserContext, page: Page) {
+        return new CooSaludBot(context, page)
+    }
+
     /**
     * Metodo para obtener todos los preradicados creados en la plataforma de la EPS.
     */
     async getPreRadicadosCreated() {
         const executions = await executionService.getExecutions(this.ipsCode, this.epsCode)
-
         return [...new Set(
             executions.map(execution => {
                 const metadata = execution.metadata as unknown as HorisoesCoosaludMetadataType
@@ -285,23 +287,15 @@ export class HorisoesCoosaludServices {
      * Metodo para actualizar el archivo excel (archivo de seguimiento en drive) insertando un nuevo preradicado.
      * @param {ExcelRowData} data Array con datos del preradicado.
      */
-    async updatePreRadicadoData(data: ExcelRowData) {
+    async insertPreRadicadoData(data: ExcelRowData) {
         try {
-            await sheets.spreadsheets.values.append({
-                spreadsheetId: EXCEL_FILE_ID,
-                range: 'Radicados!A:I',
-                valueInputOption: 'RAW',
-                requestBody: {
-                    values: [data.slice(1)]
-                }
-            })
-
+            await googleapis.sheets.insertValues(EXCEL_FILE_ID, 'Radicados', 'A:I', data)
             return true
         } catch (err) {
             if (err instanceof Error) {
                 console.error(err)
                 this.success = false
-                this.message = `Error al actualizar archivo pre-radicados: ${err.message}`
+                this.message = `Error al insertar fila en archivo pre-radicados: ${err.message}`
                 return false
             }
         }
@@ -313,86 +307,58 @@ export class HorisoesCoosaludServices {
      */
     async updatePreRadicadosFile(data: ExcelRowData[]) {
         try {
-            const file = await sheets.spreadsheets.get({
-                spreadsheetId: EXCEL_FILE_ID
-            })
-            const sheetId = file.data.sheets?.find(sheet => sheet.properties?.title === 'Radicados')?.properties?.sheetId ?? null
+            const sheet = 'Radicados'
+            const fileCodes = await googleapis.sheets.getValues(EXCEL_FILE_ID, 'Radicados', 'E:E')
 
-            const fileRows = await sheets.spreadsheets.values.get({
-                spreadsheetId: EXCEL_FILE_ID,
-                range: 'Radicados!E:E'
-            })
-            const fileCodes = fileRows.data.values || []
-
-            for (const codeValues of data) {
-                const code = codeValues[4]
-                const radicado = codeValues[7]
+            const preRadicadosData = []
+            for (const preRadicado of data) {
+                const date = preRadicado[7] as string
+                const code = preRadicado[4] as string
+                const radicado = preRadicado[10] as string
                 const rowIndex = fileCodes.findIndex(row => row[0] === code)
-                if (rowIndex) {
-                    const rowNumber = rowIndex + 1
-                    await sheets.spreadsheets.values.update({
-                        spreadsheetId: EXCEL_FILE_ID,
-                        range: `Radicados!A${rowNumber}:L${rowNumber}`,
-                        valueInputOption: 'USER_ENTERED',
-                        requestBody: {
-                            values: [codeValues],
-                        }
-                    })
+
+                // Preradicado not found - insert
+                if (!rowIndex) {
+                    await googleapis.sheets.insertValues(EXCEL_FILE_ID, sheet, 'A:L', preRadicado)
                     if (!radicado) {
-                        await sheets.spreadsheets.batchUpdate({
-                            spreadsheetId: EXCEL_FILE_ID,
-                            requestBody: {
-                                requests: [{
-                                    repeatCell: {
-                                        range: {
-                                            sheetId,
-                                            startColumnIndex: 0,
-                                            endColumnIndex: 12,
-                                            startRowIndex: rowIndex,
-                                            endRowIndex: rowIndex + 1
-                                        },
-                                        cell: {
-                                            userEnteredFormat: {
-                                                backgroundColor: {
-                                                    red: 1,
-                                                    green: 0,
-                                                    blue: 0
-                                                }
-                                            }
-                                        },
-                                        fields: 'userEnteredFormat.backgroundColor'
-                                    }
-                                }]
-                            }
-                        })
+                        const range = {
+                            startColumn: 0,
+                            endColumn: 12,
+                            startRow: rowIndex,
+                            endRow: rowIndex + 1
+                        }
+                        await googleapis.sheets.styles.changeCellBgColor(EXCEL_FILE_ID, sheet, range, '255, 0, 0')                        
                     }
                     continue
                 }
-                await sheets.spreadsheets.values.append({
-                    spreadsheetId: EXCEL_FILE_ID,
-                    range: 'Radicados!A:L',
-                    valueInputOption: 'RAW',
-                    requestBody: {
-                        values: [codeValues]
+
+                // Update row
+                const rowNumber = rowIndex + 1
+                await googleapis.sheets.updateValues(EXCEL_FILE_ID, sheet, `A${rowNumber}:L${rowNumber}`, preRadicado)
+
+                // Set row color if the status is 'error'
+                if (!radicado) {
+                    const range = {
+                        startColumn: 0,
+                        endColumn: 12,
+                        startRow: rowIndex,
+                        endRow: rowIndex + 1
                     }
-                })
+                    await googleapis.sheets.styles.changeCellBgColor(EXCEL_FILE_ID, sheet, range, '255, 0, 0')
+                    continue
+                }
+
+                // Set preradicado data
+                preRadicadosData.push({ date, code, radicado })
             }
 
-            const preRadicadosData = data.map(pre_radicado => ({
-                date: pre_radicado[7] ? new Date(pre_radicado[7] as string).toLocaleDateString('es-CO') : null,
-                code: String(pre_radicado[4]),
-                radicado: pre_radicado[10] ? String(pre_radicado[10]) : null
-            }))
-
-            await this.createRadicadosSheet(preRadicadosData)
-
-            return true
+            return preRadicadosData
         } catch (err) {
             if (err instanceof Error) {
-                console.error(err.message)
+                console.error(err)
                 this.success = false
-                this.message = `Error al actualizar archivo en linea: ${err.message}`
-                return false
+                this.message = `Error al actualizar archivo de seguimiento: ${err.message}`
+                return
             }
         }
     }
@@ -402,93 +368,58 @@ export class HorisoesCoosaludServices {
      * proporcionados al invocar el metodo **updatePreRadicadosFile**.
      * @param preRadicadosData Datos de los radicados a procesar
      */
-    private async createRadicadosSheet(preRadicadosData: { date: string | null, code: string, radicado: string | null }[]) {
+    async createRadicadosSheet(preRadicadosData: { date: string, code: string, radicado: string }[]) {
         try {
             const actualDate = new Date()
             const [day, month, year] = [
-                String(actualDate.getDay()).padStart(2, '0'),
+                String(actualDate.getDate()).padStart(2, '0'),
                 String(actualDate.getMonth() + 1).padStart(2, '0'),
                 String(actualDate.getFullYear()).slice(2)
             ]
-
             const sheetName = `Consolidado ${day}.${month}.${year}`
-            const file = await sheets.spreadsheets.get({
-                spreadsheetId: EXCEL_FILE_ID
-            })
-            const existingSheet = file.data.sheets?.some(sheet => sheet.properties?.title === sheetName)
+
+            // Verify sheet
+            const existingSheet = await googleapis.sheets.existingSheet(EXCEL_FILE_ID, sheetName)
             if (existingSheet) return true
 
-
-            //* Data
-            const fileData: {
-                date: string,
-                bill: string,
-                eps: 'COOSALUD ENTIDAD PROMOTORA DE SALUD S.A',
-                modality: 'PAQUETE',
-                radicado: string,
-                user: 'HORIBOT'
-            }[] = []
-
+            // Data
+            const fileData = []
             for (const preRadicado of preRadicadosData) {
                 if (!preRadicado.date || !preRadicado.radicado) continue
                 const bills = await this.getPreRadicadoBills(preRadicado.code)
+
                 for (const bill of bills) {
-                    fileData.push({
+                    const data = {
                         date: preRadicado.date,
                         bill,
                         eps: 'COOSALUD ENTIDAD PROMOTORA DE SALUD S.A',
                         modality: 'PAQUETE',
                         radicado: preRadicado.radicado,
                         user: 'HORIBOT'
-                    })
+                    }
+                    fileData.push(Object.values(data))
                 }
             }
-            const formattedFileData = fileData.map(object => Object.values(object))
 
+            // Create sheet
+            const newSheet = await googleapis.sheets.newSheet(EXCEL_FILE_ID, sheetName)
+            const sheetId = newSheet.sheetId
 
-            //* Create sheet
-            const sheetResponse = await sheets.spreadsheets.batchUpdate({
-                spreadsheetId: EXCEL_FILE_ID,
-                requestBody: {
-                    requests: [{
-                        addSheet: {
-                            properties: {
-                                title: sheetName,
-                            },
-                        }
-                    }]
-                }
-            })
-            const sheetId = sheetResponse.data.replies?.[0]?.addSheet?.properties?.sheetId as number | null
+            // Set header
+            const sheetHeader = [
+                "FECHA RADICACION",
+                "FACTURA",
+                "EPS",
+                "MODALIDAD",
+                "NUM RADICADO",
+                "USUARIO"
+            ]
+            await googleapis.sheets.insertValues(EXCEL_FILE_ID, sheetName, 'A1:F1', sheetHeader)
 
-            //* Header
-            await sheets.spreadsheets.values.append({
-                spreadsheetId: EXCEL_FILE_ID,
-                range: `${sheetName}!A1:F1`,
-                valueInputOption: 'RAW',
-                requestBody: {
-                    values: [[
-                        "FECHA RADICACION",
-                        "FACTURA",
-                        "EPS",
-                        "MODALIDAD",
-                        "NUM RADICADO",
-                        "USUARIO"
-                    ]]
-                }
-            })
+            // Insert rows
+            await googleapis.sheets.insertRows(EXCEL_FILE_ID, sheetName, 'A2:F', fileData)
 
-            //* Insert rows
-            await sheets.spreadsheets.values.append({
-                spreadsheetId: EXCEL_FILE_ID,
-                range: `${sheetName}!A2:F`,
-                valueInputOption: 'USER_ENTERED',
-                insertDataOption: 'INSERT_ROWS',
-                requestBody: {
-                    values: formattedFileData
-                }
-            })
-
+            // Format sheet
             await this.formatRadicadosSheet(sheetId)
 
             return true
@@ -496,18 +427,19 @@ export class HorisoesCoosaludServices {
             if (err instanceof Error) {
                 console.error(err)
                 this.success = false
-                this.message = `Error al crear consolidado de Pre-radicados: ${err.message}`
-                return false
+                this.message = `Error al crear consolidado de pre-radicados: ${err.message}`
             }
+            return false
         }
     }
 
+    //! Pendiente crear metodos de diseño en googleapis    
     /**
      * Metodo para aplicar el formato a una hoja de radicados (Consolidado).
      * @param sheetId Id de la hoja del archivo     
      */
-    private async formatRadicadosSheet(sheetId: number | null) {
-        if (!sheetId) return
+    async formatRadicadosSheet(sheetId: number | null) {
+        if (!sheetId) throw new Error('Sheet id no proporcionado')
 
         //? Columns width
         // widths = ["A: 150", "B: 150", "C: 350", "D: 150", "E: 250", "F: 150"]
@@ -663,5 +595,101 @@ export class HorisoesCoosaludServices {
             }
         })
 
+    }
+
+    /**
+     * Metodo para actualizar la carpeta alojada en Google Drive, que contiene los radicados con sus respectivas facturas.     
+     */
+    async updateRadicadosFolder(context: BrowserContext, page: Page, preRadicadosData: { date: string, code: string, radicado: string }[]) {
+        try {
+            console.log('\nProcessing files...\n')
+            const sftp = await CooSaludBot.connectSftp()
+
+            for (const preRadicado of preRadicadosData) {
+                const radicado = preRadicado.radicado
+
+                console.log(`Downloading ${preRadicado.code} folder`)
+                const downloadSftpFolder = await CooSaludBot.getSftpFolder(sftp, preRadicado.code)
+                if (!downloadSftpFolder) throw new Error()
+                console.log(`Folder ${preRadicado.code} downloaded`)
+
+                const folderPath = path.join(process.cwd(), 'local', preRadicado.code)
+
+                // Verify existing folder
+                const radicadoFolderExists = await googleapis.drive.getDriveFolder(RADICADOS_FOLDER_ID, radicado)
+                if (radicadoFolderExists) {
+                    console.log(`Folder ${radicado} exists in Drive... continue\n`)
+                    continue
+                }
+
+                // Create folder
+                const radicadoFolder = await googleapis.drive.createDriveFolder(RADICADOS_FOLDER_ID, radicado)
+                if (!radicadoFolder) throw new Error()
+                console.log(`Folder ${radicado} created in Drive`)
+                console.log('---')
+
+                //* Files
+                const IMGFolders = fs.readdirSync(`${folderPath}/IMG`)
+                for (const billFolder of IMGFolders) {
+                    const bill = billFolder
+                    const billDriveFolder = await googleapis.drive.createDriveFolder(radicadoFolder, billFolder)
+                    if (!billDriveFolder) throw new Error()
+                    console.log(`Folder ${radicado}/${billFolder} created in Drive`)
+                    const billFileNames = fs.readdirSync(`${folderPath}/IMG/${billFolder}`)
+
+                    // IMG files
+                    for (const fileName of billFileNames) {
+                        const fileCode = getFileType(fileName) === 'xml' ? 'XML' : fileName.split('_')[0]
+                        if (!fileCode || fileCode !== 'XML' && fileCode !== 'FEV' && fileCode !== 'HEV') continue
+                        const fileBuffer = fs.readFileSync(`${folderPath}/IMG/${billFolder}/${fileName}`)
+                        await googleapis.drive.uploadDriveFile(billDriveFolder, fileName, fileBuffer)
+                    }
+
+                    // CUV file
+                    const CUVFileName = `CUV_${bill}.json`
+                    const CUVFileBuffer = fs.readFileSync(`${folderPath}/RIPS/${CUVFileName}`)
+                    await googleapis.drive.uploadDriveFile(billDriveFolder, CUVFileName, CUVFileBuffer)
+                    // RIPS file
+                    const RIPSFileName = `${bill}.json`
+                    const RIPSFileBuffer = fs.readFileSync(`${folderPath}/RIPS/${RIPSFileName}`)
+                    await googleapis.drive.uploadDriveFile(billDriveFolder, RIPSFileName, RIPSFileBuffer)
+
+                    console.log('Files uploaded')
+                }
+
+                //* Certificate
+                const EPSService = this.EPSServices(context, page)
+                console.log('---')
+                console.log('Downloading certificate')
+                const radicadoCertificate = await EPSService.getRadicadoCertificate(radicado)
+                if (!radicadoCertificate) throw new Error(EPSService.message)
+
+                // Upload certificate
+                const uploadCertificate = await googleapis.drive.uploadDriveFile(
+                    radicadoFolder,
+                    radicadoCertificate.filename,
+                    radicadoCertificate.buffer
+                )
+                if (!uploadCertificate) throw new Error()
+                console.log('Certificate uploaded')
+
+                // Delete local radicado folder
+                fs.rmSync(folderPath, {
+                    recursive: true,
+                    force: true
+                })
+
+                console.log(`\nPreradicado ${preRadicado.code}/${radicado} finished\n`)
+            }
+
+            return true
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err)
+                this.success = false
+                this.message = `Error al actualizar carpeta radicados: ${err.message}`
+            }
+            return false
+        }
     }
 }
