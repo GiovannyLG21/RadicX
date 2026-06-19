@@ -19,7 +19,7 @@ export class LoginPage {
 
     private async verifySession() {
         return await this.page.locator(this.data.sessionSelector)
-            .waitFor({ state: 'visible', timeout: 8000 })
+            .waitFor({ state: 'visible' })
             .then(() => true)
             .catch(() => false)
     }
@@ -71,7 +71,7 @@ export const googleapis = {
         `,
                 fields: 'files(id, name, mimeType)',
                 supportsAllDrives: true,
-                includeItemsFromAllDrives: true,                
+                includeItemsFromAllDrives: true,
             })
 
             const files = res.data.files
@@ -193,7 +193,7 @@ export const googleapis = {
          */
         async existingSheet(spreadsheetId: string, sheet: string) {
             const file = await sheets.spreadsheets.get({ spreadsheetId })
-            const existingSheet = file.data.sheets?.some(sheetData => sheetData.properties?.title === sheet)                        
+            const existingSheet = file.data.sheets?.some(sheetData => sheetData.properties?.title === sheet)
             return existingSheet
         },
 
@@ -279,7 +279,7 @@ export const googleapis = {
                 const file = await sheets.spreadsheets.get({ spreadsheetId })
                 const sheetId = file.data.sheets?.find(sheetFounded => sheetFounded.properties?.title === sheet)?.properties?.sheetId ?? null
                 const rgb = color.split(', ')
-                const [red, blue, green] = [Number(rgb[0]) / 255, Number(rgb[1]) / 255, Number(rgb[2]) / 255]                
+                const [red, blue, green] = [Number(rgb[0]) / 255, Number(rgb[1]) / 255, Number(rgb[2]) / 255]
 
                 await sheets.spreadsheets.batchUpdate({
                     spreadsheetId,

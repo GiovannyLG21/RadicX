@@ -8,7 +8,7 @@ const oauth2Client = new google.auth.OAuth2(
     GOOGLE_REDIRECT_URL
 )
 
-//* Generate new client
+// //* Generate new client
 // const url = oauth2Client.generateAuthUrl({
 //     access_type: 'offline',
 //     scope: [

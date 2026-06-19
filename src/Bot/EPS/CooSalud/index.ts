@@ -224,7 +224,7 @@ class CooSaludBot {
 
             let data: ExcelRowData = []
             let attempts = 0
-            while (attempts < 3 && !data.length) {
+            while (attempts < 5 && !data.length) {
                 const downloadExcelBtn = this.page.locator('.btn.buttons-excel')
                 const [download] = await Promise.all([
                     this.page.waitForEvent('download'),
@@ -240,7 +240,7 @@ class CooSaludBot {
 
                 // Find row code                
                 worksheet?.eachRow((row, rowNumber) => {
-                    const codeCell = String(row.getCell(5).value).trim()
+                    const codeCell = row.getCell(5).value as string
                     if (codeCell === code) {
                         // Fecha radicacion column
                         const fechaRadicacion = row.getCell(8).value as string
@@ -254,7 +254,7 @@ class CooSaludBot {
                 // Data
                 attempts++
             }
-            if (!data) throw new Error('No se encontro el pre-radicado')
+            if (!data.length) throw new Error(`No se encontro el pre-radicado ${code}`)
 
             return data.slice(1, 13)
         } catch (err) {
