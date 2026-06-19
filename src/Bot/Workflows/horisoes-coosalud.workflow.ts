@@ -149,6 +149,10 @@ export class HorisoesCoosaludInitiator {
         const availableSpace = await this.availableSpace()
         if (!availableSpace) return
 
+        // const radicacionCodes: RadicacionCodesType = [
+        //     { code: '525920_20260602_193844', contract: 'Subsidiado'},
+        //     { code: '525921_20260602_193846', contract: 'Contributivo'}
+        // ]
         const radicacionCodes = await this.createRadicados()
         if (!radicacionCodes) return
 
@@ -327,7 +331,7 @@ export class HorisoesCoosaludServices {
                             startRow: rowIndex,
                             endRow: rowIndex + 1
                         }
-                        await googleapis.sheets.styles.changeCellBgColor(EXCEL_FILE_ID, sheet, range, '255, 0, 0')                        
+                        await googleapis.sheets.styles.changeCellBgColor(EXCEL_FILE_ID, sheet, range, '255, 0, 0')
                     }
                     continue
                 }

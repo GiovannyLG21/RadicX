@@ -282,7 +282,8 @@ async function HorisoesCoosaludSchedulerWorker() {
             await job.updateProgress(jobProgress)
 
             //* Preradicados
-            const preRadicados = await HorisoesCoosaludService.getPreRadicadosCreated()
+            // const preRadicados = await HorisoesCoosaludService.getPreRadicadosCreated()
+            const preRadicados = ['525920_20260602_193844']
             jobProgress.preRadicados = preRadicados
             await job.updateData({
                 date: actualDate,

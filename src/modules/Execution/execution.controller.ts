@@ -153,7 +153,7 @@ export const TestHorisoesCoosaludScheduler = asyncHandler(async (req, res) => {
 /**
  * Ejecucion principal de workflow del **'IPS Bot Horisoes'** y el **'EPS Bot Coosalud'**.
  */
-export const HorisoesCoosaludExecution = asyncHandler(async (req, res) => {
+export const HorisoesCoosaludExecution = asyncHandler(async (req, res) => {    
     const bills: string[] = req.body.bills
     const { workflow }: ExecutionDataType = req.body
     const { ipsCode, epsCode } = workflow
@@ -207,10 +207,9 @@ export const HorisoesCoosaludExecution = asyncHandler(async (req, res) => {
  * Endpoint para obtener todas las facturas procesadas y fallidas hasta la fecha; 
  * incluye pre-radicados y las facturas subidas en ellos.
  */
-export const HorisoesCoosaludProccesed = asyncHandler(async (req, res) => {
-    const { workflow }: ExecutionDataType = req.body.workflow
+export const HorisoesCoosaludProccesed = asyncHandler(async (req, res) => {    
+    const { workflow }: ExecutionDataType = req.body
     const { ipsCode, epsCode } = workflow
-
     const processedStructure: {
         total_procesadas: number,
         total_fallidas: number,

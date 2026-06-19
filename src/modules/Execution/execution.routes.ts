@@ -20,9 +20,9 @@ router.get('/horisoes/coosalud',
     executionController.HorisoesCoosaludProccesed)
 
 router.post('/horisoes/coosalud/execute',
-    validateWorkflow(Workflows.HorisoesCoosaludWorkflow),
     upload.single('bills'),
     validateBillsFile,
+    validateWorkflow(Workflows.HorisoesCoosaludWorkflow),
     executionController.HorisoesCoosaludExecution)
 
 export default router

@@ -1,6 +1,6 @@
-import { Request, Response } from 'express'
-
-export default function errorMiddleware(err: unknown, _req: Request, res: Response) {
+import { NextFunction, Request, Response } from 'express'
+// eslint-disable-next-line
+export default function errorMiddleware(err: unknown, _req: Request, res: Response, _next: NextFunction) {
   const status = 500
   console.log(err)
 

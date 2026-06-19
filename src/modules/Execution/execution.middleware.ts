@@ -20,6 +20,11 @@ export const validateWorkflow = (Workflow: WorkflowType) => async (req: Request,
         status: 404
     })
 
+    if (!req.body) {
+        req.body = { workflow: Workflow }
+        return next()
+    }
+
     req.body.workflow = Workflow
 
     next()
