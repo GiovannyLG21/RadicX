@@ -9,9 +9,9 @@ import ExecutionRoutes from '@/modules/Execution/execution.routes'
 
 const router: Router = Router()
 
-// router.use('/roles', RoleRoutes)
-// router.use('/users', UserRoutes)
-// router.use('/auth', AuthRoutes)
+router.use('/roles', RoleRoutes)
+router.use('/users', UserRoutes)
+router.use('/auth', AuthRoutes)
 router.use('/ips', IPSRoutes)
 router.use('/eps', EPSRoutes)
 router.use('/executions', ExecutionRoutes)

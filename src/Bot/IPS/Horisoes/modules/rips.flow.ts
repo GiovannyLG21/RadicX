@@ -6,8 +6,23 @@ import { formatDate } from '@/utils/dates'
 import { formatError } from '@/Bot/utils'
 
 class RIPSFlow {
+
+    /**
+     * Variable de estado del bot
+     * @param {boolean} success Estado de los metodos ejecutados     
+     */
     public success: boolean
+
+    /**
+     * Variable de estado del bot
+     * @param {BillStatusType} status Nombre del estado de los metodos ejecutados     
+     */
     public status: BillStatusType
+
+    /**
+     * Variable de estado del bot
+     * @param {string} message Mensaje de los metodos ejecutados     
+     */
     public message: string
 
     constructor(
@@ -19,10 +34,9 @@ class RIPSFlow {
         this.message = ''
     }
 
-    async downloadFiles(): Promise<{ code: 'RIPS' | 'CUV', buffer: Buffer<ArrayBufferLike> }[] | undefined> {
-        const bill = this.bill
-        const actualDate = formatDate(new Date())
+    async downloadFiles(): Promise<{ code: 'RIPS' | 'CUV', buffer: Buffer<ArrayBufferLike> }[] | undefined> {        
         try {
+            const actualDate = formatDate(new Date())
             //* Section
             // Dropdown 'Facturacion'
             await this.page.click('.dropdown-toggle[title="Facturacion"]')
@@ -53,10 +67,10 @@ class RIPSFlow {
             // Search and select bill in 'modal'
             const modal = this.page.locator('.modal-dialog')
             const searchInput = modal.locator('.o_searchview_input')
-            await searchInput.fill(bill)
+            await searchInput.fill(this.bill)
             await searchInput.press('Enter')
             // Select search result
-            const searchResult = modal.locator(`.o_list_table tbody tr td[data-tooltip="${bill}"]`)
+            const searchResult = modal.locator(`.o_list_table tbody tr td[data-tooltip="${this.bill}"]`)
             await searchResult.waitFor({
                 state: 'visible'
             })
@@ -108,11 +122,13 @@ class RIPSFlow {
                 }
             ]
 
-        } catch (err: any) {
-            this.success = false
-            this.status = 'ERROR'
-            this.message = `Error al descargar RIPS: ${formatError(err.message)}`
-            return
+        } catch (err) {
+            if (err instanceof Error) {
+                this.success = false
+                this.status = 'ERROR'
+                this.message = `Error al descargar RIPS: ${formatError(err.message)}`
+                return
+            }
         }
     }
 
@@ -120,7 +136,9 @@ class RIPSFlow {
         try {
             const billFiles = []
             for (const entry of zipBufferFiles) {
-                const file = new AdmZip(entry.buffer).getEntries()[0]!
+                const file = new AdmZip(entry.buffer).getEntries()[0]
+                if (!file) throw new Error(`No se encontro el archivo ${entry.code}`)
+
                 let fileName = file.entryName
                 const fileCode = entry.code
 
@@ -136,11 +154,13 @@ class RIPSFlow {
             }
 
             return billFiles
-        } catch (err: any) {
-            this.success = false
-            this.status = 'ERROR'
-            this.message = `Error al descomprimir RIPS: ${formatError(err.message)}`
-            return
+        } catch (err) {
+            if (err instanceof Error) {
+                this.success = false
+                this.status = 'ERROR'
+                this.message = `Error al descomprimir RIPS: ${formatError(err.message)}`
+                return
+            }
         }
     }
 }

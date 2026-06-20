@@ -29,7 +29,7 @@ describe('EPS API', () => {
         })
     })
 
-    let newepsCode = 'EPS002'
+    const newepsCode = 'EPS002'
     describe('POST /eps', () => {
         test('Post /eps should create a eps', async () => {
             const res = await request(app)

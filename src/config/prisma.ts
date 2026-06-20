@@ -19,10 +19,7 @@ const globalForPrisma = global as typeof globalThis & {
     prisma?: PrismaClient
 }
 
-export const prisma =
-    globalForPrisma.prisma ??
-    new PrismaClient({ adapter })
-
+export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter })
 globalForPrisma.prisma = prisma
 
 export default prisma

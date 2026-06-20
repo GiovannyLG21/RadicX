@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import request, { Response } from 'supertest'
 import app from '../src/app'
 export type TestRequest = ReturnType<typeof request.agent>

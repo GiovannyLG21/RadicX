@@ -1,4 +1,3 @@
-import { Request, Response } from 'express';
 import * as userService from './user.service'
 import { asyncHandler } from '@/middlewares';
 import { CreateUser } from './user.types';

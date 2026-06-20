@@ -12,3 +12,9 @@ export const DATABASE_HOST = process.env.DATABASE_HOST
 export const DATABASE_USER = process.env.DATABASE_USER
 export const DATABASE_PASSWORD = process.env.DATABASE_PASSWORD
 export const DATABASE_NAME = process.env.DATABASE_NAME
+
+export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
+export const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
+export const GOOGLE_REDIRECT_URL = process.env.GOOGLE_REDIRECT_URL
+export const GOOGLE_CODE = String(process.env.GOOGLE_CODE)
+export const GOOGLE_REFRESH_TOKEN = String(process.env.GOOGLE_REFRESH_TOKEN)

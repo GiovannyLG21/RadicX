@@ -1,6 +1,14 @@
 import { Page } from 'playwright'
 import { FlowChildJob } from 'bullmq'
 import { CellValue } from 'exceljs'
+import { HorisoesCoosaludInitiator } from './Workflows/horisoes-coosalud.workflow';
+
+export interface WorkflowType {
+    name: string
+    ipsCode: string
+    epsCode: string
+    initiator: typeof HorisoesCoosaludInitiator
+}
 
 //* Bot Types
 export type IPSBotType = (page: Page, bill: string) => Promise<BillDataType>
@@ -8,7 +16,7 @@ export type EPSBotType = (page: Page, bill: string, radicacionCodes: RadicacionC
 
 
 //* Worker Types
-export type JobDataType = {
+export interface JobDataType {
     data: {
         bill: string,
         radicacionCodes: RadicacionCodesType
@@ -18,7 +26,7 @@ export type JobDataType = {
 export type FlowChildJobType = JobDataType & FlowChildJob
 
 //* Bill Status Type
-export type BillInfoType = {
+export interface BillInfoType {
     success: boolean,
     status: BillStatusType,
     message: string
@@ -39,7 +47,7 @@ export type BillStatusType =
 //* Bill Data Type
 export type BillDataType = BaseBillDataType & BillInfoType
 
-type BaseBillDataType = {
+interface BaseBillDataType {
     bill: string,
     radicado?: string,
     contract: 'Contributivo' | 'Subsidiado' | null,
@@ -52,7 +60,7 @@ type BaseBillDataType = {
 
 
 //* Others
-export type LoginDataType = {
+export interface LoginDataType {
     sessionSelector: string
     userSelector: string,
     passwordSelector: string,
@@ -71,3 +79,19 @@ export type RadicacionCodesType = {
 }[]
 
 export type ExcelRowData = CellValue[]
+
+export interface HorisoesCoosaludMetadataType {
+    total_facturas: number;
+    total_radicadas: number;
+    total_fallidas: number;
+    pre_radicados: {
+        codigo: string;
+        contrato: string;
+        facturas: string[];
+        cantidad_facturas: number;
+    }[];
+    fallidas: {
+        codigos: string[];
+        facturas: ProcessedBillType[]
+    }
+}

@@ -29,7 +29,7 @@ describe('IPS API', () => {
         })
     })
 
-    let newIPSCode = '010101010'
+    const newIPSCode = '010101010'
     describe('POST /ips', () => {
         test('Post /ips should create a ips', async () => {
             const res = await request(app)

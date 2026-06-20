@@ -1,13 +1,15 @@
 import { RadicacionCodesType } from "@/Bot/types"
 
 export const CREDENTIALS = {
-    user: '1900108923',
-    password: 'coosalud2025*'
+    user: String(process.env.COOSALUD_USER),
+    password: String(process.env.COOSALUD_PASSWORD)
 }
 
-export const SFTP_CREDENTIALS = {
-    user: '901011395',
-    password: 'jhAkif5ljahsdñ'
+export const SFTP_CONNECTION = {
+    host: String(process.env.SFTP_HOST),
+    port: Number(process.env.SFTP_PORT),
+    user: String(process.env.SFTP_USER),
+    password: String(process.env.SFTP_PASSWORD)
 }
 
 export const CONTRACTS: RadicacionCodesType = [

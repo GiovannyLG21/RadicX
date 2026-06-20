@@ -1,34 +1,31 @@
 import { Request, Response, NextFunction } from 'express'
-import { getFileType } from '@/utils/string'
+import { WorkflowType } from '@/Bot/types'
+import * as IPSService from '@/modules/IPS/ips.service'
+import * as EPSService from '@/modules/EPS/eps.service'
 
-export const validateBillsFile = (req: Request, res: Response, next: NextFunction) => {
-    const file = req.file
-    if (!file) return res.json({
-        message: 'El archivo con los numeros de factura es requerido',
-        status: 400
+/**
+ * Middleware para la validacion del workflow del endpoint.
+ * @param Workflow Workflow del endpoint perteneciente a la lista 'Workflow' definida en 'config'
+ */
+export const validateWorkflow = (Workflow: WorkflowType) => async (req: Request, res: Response, next: NextFunction) => {
+    const ipsCode = Workflow.ipsCode
+    const epsCode = Workflow.epsCode
+
+    //* Find IPS/EPS
+    const IPSData = await IPSService.getIPSByCode(ipsCode)
+    const EPSData = await EPSService.getEPSByCode(epsCode)
+
+    if (!IPSData || !EPSData) return res.status(404).json({
+        message: !IPSData ? 'No se encontro la IPS proporcionada' : 'No se encontro la EPS proporcionada',
+        status: 404
     })
 
-    const fileType = getFileType(file.originalname)
-    if (fileType != 'txt') return res.json({
-        message: 'El archivo debe ser de formato .txt',
-        status: 400
-    })
+    if (!req.body) {
+        req.body = { workflow: Workflow }
+        return next()
+    }
 
-    const fileContent = file.buffer
-        .toString('utf-8')
-        .replace(/[^\x20-\x7E\n\r\t]/g, '')
+    req.body.workflow = Workflow
 
-    const bills = fileContent
-        .split(/\r\n|\n|\r/)
-        .map(bill => bill.trim())
-        .filter(bill => Boolean(bill) && bill.length == 9)
-
-    if (bills.length < 100) return res.status(400).json({
-        message: 'El archivo debe tener minimo 100 facturas.',
-        status: 400
-    })
-
-    req.body.bills = bills
-    
     next()
 }

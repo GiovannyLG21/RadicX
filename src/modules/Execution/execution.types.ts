@@ -1,11 +1,17 @@
-import z from 'zod'
-import { executionScheme, executionUpdateScheme } from './execution.scheme'
 import { createExecution } from './execution.service'
+import { WorkflowType } from '@/Bot/types'
 
-export type executionDataType = z.infer<typeof executionScheme>
-export type createExecutionDataType = Awaited<ReturnType<typeof createExecution>>
-export type executionUpdateDataType = z.infer<typeof executionUpdateScheme>
-export type GetRadicadosDataType = Omit<executionDataType, 'metadata'>
-export type ExecutionMetadataType = executionUpdateDataType['metadata']
+export interface ExecutionDataType {
+    workflow: WorkflowType
+}
 
-export type BillsCodesType = string[]
+export interface CreateExecutionDataType {
+    ipsCode: string,
+    epsCode: string
+}
+
+export type CreateExecutionReturnType = Awaited<ReturnType<typeof createExecution>>
+
+export interface FinishExecutionDataType {
+    metadata: object
+}

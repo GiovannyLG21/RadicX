@@ -3,12 +3,27 @@ import AdmZip from 'adm-zip'
 import { PDFParse } from 'pdf-parse'
 import { Page } from 'playwright'
 import { getFileType } from '@/utils/string'
-import { BillStatusType } from '@/Bot/types'
 import { formatError } from '@/Bot/utils'
+import { BillStatusType } from '@/Bot/types'
 
 class BillFlow {
+
+    /**
+     * Variable de estado del bot
+     * @param {boolean} success Estado de los metodos ejecutados     
+     */
     public success: boolean
+
+    /**
+     * Variable de estado del bot
+     * @param {BillStatusType} status Nombre del estado de los metodos ejecutados     
+     */
     public status: BillStatusType
+
+    /**
+     * Variable de estado del bot
+     * @param {string} message Mensaje de los metodos ejecutados     
+     */
     public message: string
 
     constructor(
@@ -21,7 +36,6 @@ class BillFlow {
     }
 
     async downloadFiles() {
-        const bill = this.bill
         try {
             //* Section
             // Section 'Salud'
@@ -34,20 +48,22 @@ class BillFlow {
             // Search
             const searchBox = this.page.locator('.o_searchview_input[role="searchbox"]')
             await searchBox.click()
-            await searchBox.fill(bill)
+            await searchBox.fill(this.bill)
             await searchBox.press('Enter')
-            const searchResult = this.page.locator(`.o_list_table tbody tr td[data-tooltip="${bill}"]`)
+            const searchResult = this.page.locator(`.o_list_table tbody tr td[data-tooltip="${this.bill}"]`)
             // Bill not found: return        
-            const existsBill = await searchResult.waitFor({ state: 'visible' }).then(() => true).catch(() => false)
+            const existsBill = await searchResult.waitFor({ state: 'visible' })
+                .then(() => true)
+                .catch(() => false)
             if (!existsBill) {
                 this.success = false
                 this.status = 'ERROR'
                 this.message = 'Factura no encontrada'
                 return
             }
+
             // Open Result
             await searchResult.click()
-
             // Wait download
             const [download] = await Promise.all([
                 this.page.waitForEvent('download'),
@@ -57,35 +73,37 @@ class BillFlow {
             const downloadPath = await download.path()
             const downloadBuffer = fs.readFileSync(downloadPath)
             return downloadBuffer
-        } catch (err: any) {
-            this.success = false
-            this.status = 'ERROR'
-            this.message = `Error al descargar factura: ${formatError(err.message)}`
-            return
+
+        } catch (err) {
+            if (err instanceof Error) {
+                this.success = false
+                this.status = 'ERROR'
+                this.message = `Error al descargar factura: ${formatError(err.message)}`
+                return
+            }
         }
     }
 
     async getFiles(zipBuffer: Buffer<ArrayBufferLike>) {
-        const bill = this.bill
         try {
             const billZipFile = new AdmZip(zipBuffer).getEntries()
             const billFiles = []
 
             for (const file of billZipFile) {
                 let fileCode: 'FEV' | 'XML' = 'FEV'
-                let fileName: string = ''
+                let fileName = ''
                 const fileType = getFileType(file.entryName)
 
                 if (fileType == 'json') continue
 
                 if (fileType == 'pdf') {
                     fileCode = 'FEV'
-                    fileName = `FEV_901011395_${bill}.pdf`
+                    fileName = `FEV_901011395_${this.bill}.pdf`
                 }
 
                 if (fileType == 'xml') {
                     fileCode = 'XML'
-                    fileName = `${bill}.xml`
+                    fileName = `${this.bill}.xml`
                 }
 
                 billFiles.push({
@@ -96,16 +114,19 @@ class BillFlow {
             }
 
             return billFiles
-        } catch (err: any) {
-            this.success = false
-            this.status = 'ERROR'
-            this.message = `Error al descomprimir archivos de la factura: ${formatError(err.message)}`
-            return
+        } catch (err) {
+            if (err instanceof Error) {
+                this.success = false
+                this.status = 'ERROR'
+                this.message = `Error al descomprimir archivos de la factura: ${formatError(err.message)}`
+                return
+            }
         }
     }
 
-    async getContract(pdfFileBuffer: Buffer<ArrayBufferLike>) {
+    async getContract(pdfFileBuffer: Buffer<ArrayBufferLike> | undefined) {
         try {
+            if (!pdfFileBuffer) throw new Error('FEV no encontrado')
             const pdfParser = new PDFParse({ data: pdfFileBuffer })
             const pdfText = (await pdfParser.getText()).text
 
@@ -117,13 +138,15 @@ class BillFlow {
                 this.message = 'Contrato no encontrado'
                 return
             }
-            let contract = match?.[1] as 'Contributivo' | 'Subsidiado'
+            const contract = match?.[1] as 'Contributivo' | 'Subsidiado'
             return contract
-        } catch (err: any) {
-            this.success = false
-            this.status = 'ERROR'
-            this.message = `Error al obtener el contrato: ${formatError(err.message)}`
-            return
+        } catch (err) {
+            if (err instanceof Error) {
+                this.success = false
+                this.status = 'ERROR'
+                this.message = `Error al obtener el contrato: ${formatError(err.message)}`
+                return
+            }
         }
     }
 }

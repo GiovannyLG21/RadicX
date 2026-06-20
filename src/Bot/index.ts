@@ -1,30 +1,21 @@
-import fs from 'fs'
-import { Browser } from 'playwright'
-import { chromium } from 'playwright-extra'
-import StealthPlugin from 'puppeteer-extra-plugin-stealth'
-import { DEFAULT_TIMEOUT, HEADLESS_BROWSER, NAVIGATION_TIMEOUT, SLOWMO_BROWSER } from './config/config'
+import { HorisoesCoosaludInitiator } from './Workflows/horisoes-coosalud.workflow'
 
-chromium.use(StealthPlugin())
+//* Workflows
 
-export async function execPlaywright() {
-    const browser = await chromium.launch({
-        headless: HEADLESS_BROWSER,
-        slowMo: SLOWMO_BROWSER,
-    })
-    return browser
+/**
+ * Objeto con los workflows de cada IPS.
+ */
+export const Workflows = {
+    HorisoesCoosaludWorkflow: {
+        name: 'Horisoes_Coosalud_Workflow',
+        ipsCode: '901749264',
+        epsCode: 'EPS042',
+        initiator: HorisoesCoosaludInitiator
+    },
+    HorisoesNuevaEpsWorkflow: {
+        name: 'Horisoes_NuevaEPS_Workflow',
+        ipsCode: '901749264',
+        epsCode: 'epsCode',
+        initiator: HorisoesCoosaludInitiator
+    }
 }
-
-export async function newContext(browser: Browser) {
-    const context = await browser.newContext(
-        fs.existsSync('playwright-data/session.json') ? {
-            storageState: 'playwright-data/session.json',
-            acceptDownloads: true,
-        } : {
-            acceptDownloads: true,
-        }
-    )
-    context.setDefaultNavigationTimeout(NAVIGATION_TIMEOUT)
-    context.setDefaultTimeout(DEFAULT_TIMEOUT)
-    return context
-}
-
