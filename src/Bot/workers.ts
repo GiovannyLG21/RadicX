@@ -97,6 +97,8 @@ async function HorisoesCoosaludFlowWorker() {
 
             await executionService.finishExecution(executionId, { metadata })
 
+            await context.close()
+            
             // Clean browser
             const waitingFlows = await HorisoesCoosaludFlowQueue.getWaitingCount()
             const waitingChildrenFlows = await HorisoesCoosaludFlowQueue.getWaitingChildrenCount()
@@ -104,9 +106,7 @@ async function HorisoesCoosaludFlowWorker() {
                 console.log('\nRefrescando navegador...')
                 await browser.close()
                 await browserManager()
-            }
-
-            await context.close()
+            }            
         },
         {
             connection: {
@@ -281,9 +281,12 @@ async function HorisoesCoosaludSchedulerWorker() {
             }
             await job.updateProgress(jobProgress)
 
+            //* Services Health
+            const servicesStatus = await HorisoesCoosaludService.servicesHealthCheck(context)
+            if (!servicesStatus.success) return await setFail(servicesStatus.message)
+
             //* Preradicados
-            // const preRadicados = await HorisoesCoosaludService.getPreRadicadosCreated()
-            const preRadicados = ['525920_20260602_193844']
+            const preRadicados = await HorisoesCoosaludService.getPreRadicadosCreated()
             jobProgress.preRadicados = preRadicados
             await job.updateData({
                 date: actualDate,
@@ -336,11 +339,13 @@ async function HorisoesCoosaludSchedulerWorker() {
             jobProgress.uploadRadicadoFiles.data = uploadRadicadoFiles
             console.log('\nRadicados files uploaded ✓')
 
+            await context.close()
+
             //* Return
-            await job.updateData({                
+            await job.updateData({
                 date: actualDate,
                 status: 'COMPLETED',
-                initialData: preRadicados            
+                initialData: preRadicados
             })
 
             return {

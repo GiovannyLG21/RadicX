@@ -40,16 +40,11 @@ export const getExecution = asyncHandler(async (req, res) => {
     })
 })
 
+//* Tests
 /**
  * Endpoint para la ejecucion de **tests**.
  */
-export const TestMain = asyncHandler(async (req, res) => {
-
-    // const browser = await execPlaywright()
-    // const context = await newContext(browser)
-    // const page = await context.newPage()
-
-
+export const Test1 = asyncHandler(async (req, res) => {   
 
     return res.json({
         message: 'Executed',
@@ -60,9 +55,6 @@ export const TestMain = asyncHandler(async (req, res) => {
 // TestAddJobSchedule
 export const Test = asyncHandler(async (req, res) => {
 
-    // const browser = await execPlaywright()
-    // const context = await newContext(browser)
-    // const page = await context.newPage()
     await HorisoesCoosaludScheduler.obliterate({ force: true })
     await HorisoesCoosaludScheduler.add(
         'check-preradicados-job',
@@ -119,15 +111,15 @@ export const TestHorisoesCoosaludScheduler = asyncHandler(async (req, res) => {
     const EPSService = HorisoesCoosaludService.EPSServices(context, page)
 
     // Single
-    // const preRadicado = '525922_20260602_194032'
+    // const preRadicado = '539269_20260619_153422'
     // const preRadicadoData = await EPSService.getPreRadicadoData(preRadicado)
     // if (!preRadicadoData) throw new Error('')
     // await HorisoesCoosaludService.insertPreRadicadoData(preRadicadoData)
 
 
     // Multiple
-    const preRadicados = await HorisoesCoosaludService.getPreRadicadosCreated()
-    // const preRadicados = ['525920_20260602_193844']
+    // const preRadicados = await HorisoesCoosaludService.getPreRadicadosCreated()
+    const preRadicados = ['525920_20260602_193844']
     const preRadicadosData = await EPSService.getPreRadicadosData(preRadicados)
     if (!preRadicadosData) return res.status(500).json({ message: EPSService.message })
 
@@ -142,7 +134,7 @@ export const TestHorisoesCoosaludScheduler = asyncHandler(async (req, res) => {
 
     return res.json({
         message: 'Executed',
-        data: updatePreRadicados,
+        data: preRadicadosData,
         status: 200
     })
 })
@@ -153,7 +145,7 @@ export const TestHorisoesCoosaludScheduler = asyncHandler(async (req, res) => {
 /**
  * Ejecucion principal de workflow del **'IPS Bot Horisoes'** y el **'EPS Bot Coosalud'**.
  */
-export const HorisoesCoosaludExecution = asyncHandler(async (req, res) => {    
+export const HorisoesCoosaludExecution = asyncHandler(async (req, res) => {
     const bills: string[] = req.body.bills
     const { workflow }: ExecutionDataType = req.body
     const { ipsCode, epsCode } = workflow
@@ -204,10 +196,35 @@ export const HorisoesCoosaludExecution = asyncHandler(async (req, res) => {
 })
 
 /**
+ * Verificacion del estado de los servicios del workflow.
+ */
+export const HorisoesCoosaludHealth = asyncHandler(async (req, res) => {
+    const { workflow }: ExecutionDataType = req.body
+
+    const browser = await execPlaywright()
+    const context = await newContext(browser)
+
+    const WorkflowInitiator = new workflow.initiator([])
+    await WorkflowInitiator.servicesHealthCheck(context)
+
+    await browser.close()
+
+    if (!WorkflowInitiator.success) return res.status(WorkflowInitiator.status).json({
+        message: WorkflowInitiator.message,
+        status: WorkflowInitiator.status
+    })
+
+    return res.json({
+        message: 'Services operating properly',
+        status: 200
+    })
+})
+
+/**
  * Endpoint para obtener todas las facturas procesadas y fallidas hasta la fecha; 
  * incluye pre-radicados y las facturas subidas en ellos.
  */
-export const HorisoesCoosaludProccesed = asyncHandler(async (req, res) => {    
+export const HorisoesCoosaludProccesed = asyncHandler(async (req, res) => {
     const { workflow }: ExecutionDataType = req.body
     const { ipsCode, epsCode } = workflow
     const processedStructure: {

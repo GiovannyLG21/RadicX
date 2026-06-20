@@ -74,20 +74,43 @@ class CooSaludBot {
         this.radicacionCodes = []
     }
 
+    public async servicesStatus() {
+        try {
+            // Coosalud web
+            const login = await this.login()
+            if (!login) throw new Error(this.message)
+
+            // SFTP
+            await CooSaludBot.connectSftp()
+
+            return true
+        } catch (err) {
+            if (err instanceof Error) {
+                console.log(err)
+                this.success = false
+                this.message = `Fallo al inicializar los servicios de Coosalud: ${err.message}`
+            }
+            return false
+        }
+    }
+
     private async login() {
         try {
             await this.page.goto('https://vco.ctamedicas.com/app/')
             const login = await this.loginPage.run()
             if (!login) {
                 this.success = false
-                this.message = 'Error al iniciar sesion en CooSalud'
+                this.message = 'No es posible iniciar sesion en CooSalud'
+                return false
             }
+            return true
         } catch (err) {
             if (err instanceof Error) {
                 console.error(err.message)
                 this.success = false
                 this.message = `Error al iniciar sesion en CooSalud: ${formatError(err.message)}`
             }
+            return false
         }
     }
 
@@ -95,14 +118,22 @@ class CooSaludBot {
      * Metodo para crear un cliente sftp con conexion.
      */
     static async connectSftp() {
-        const sftp = new SftpClient()
-        await sftp.connect({
-            host: SFTP_CONNECTION.host,
-            port: SFTP_CONNECTION.port,
-            username: SFTP_CONNECTION.user,
-            password: SFTP_CONNECTION.password
-        })
-        return sftp
+        try {
+            const sftp = new SftpClient()
+            await sftp.connect({
+                host: SFTP_CONNECTION.host,
+                port: SFTP_CONNECTION.port,
+                username: SFTP_CONNECTION.user,
+                password: SFTP_CONNECTION.password
+            })
+            return sftp
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err)
+                err.message = `SFTP Error - ${err.message}`
+                throw err
+            }
+        }
     }
 
     /**
@@ -281,7 +312,7 @@ class CooSaludBot {
 
             const data: ExcelRowData[] = []
             let attempts = 0
-            while (attempts < 3 && !data.length) {
+            while (attempts < 5 && !data.length) {
                 // Download
                 const downloadExcelBtn = this.page.locator('.btn.buttons-excel')
                 const [download] = await Promise.all([

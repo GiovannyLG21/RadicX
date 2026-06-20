@@ -4,6 +4,7 @@ import { Readable } from 'node:stream'
 import { Page, BrowserContext } from 'playwright'
 import { LoginDataType } from './types'
 import { drive, sheets } from '@/Bot/config/googleapis'
+import { EXCEL_FILE_ID } from './IPS/Horisoes/config/config'
 
 //* Playwright
 /**
@@ -61,7 +62,30 @@ export function formatError(error: string) {
 
 //* Google Apis
 export const googleapis = {
+    servicesHealthCheck: async () => {
+        try {
+            await drive.files.list({
+                pageSize: 1,
+                fields: 'files(id)'
+            })
 
+            await sheets.spreadsheets.get({
+                spreadsheetId: EXCEL_FILE_ID
+            })
+
+            return {
+                online: true,
+            }
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err)
+                return {
+                    online: false,
+                    error: err.message
+                }
+            }
+        }
+    },
     drive: {
         async downloadDriveFile(folderId: string, fileName: string): Promise<Buffer | undefined> {
             const res = await drive.files.list({

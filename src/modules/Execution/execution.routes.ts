@@ -19,6 +19,10 @@ router.get('/horisoes/coosalud',
     validateWorkflow(Workflows.HorisoesCoosaludWorkflow),
     executionController.HorisoesCoosaludProccesed)
 
+router.get('/horisoes/coosalud/health',
+    validateWorkflow(Workflows.HorisoesCoosaludWorkflow),
+    executionController.HorisoesCoosaludHealth)
+
 router.post('/horisoes/coosalud/execute',
     upload.single('bills'),
     validateBillsFile,

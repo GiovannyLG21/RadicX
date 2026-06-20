@@ -63,6 +63,30 @@ export class HorisoesCoosaludInitiator {
     }
 
     /**
+     * Metodo para la **verificacion del estado de los servicios** del workflow.
+     * @param {BrowserContext} context Contexto del browser      
+     */
+    public async servicesHealthCheck(context: BrowserContext) {
+
+        const setError = (message: string) => {
+            this.status = 500
+            this.success = false
+            this.message = message
+            return false
+        }
+
+        const EPSServices = new CooSaludBot(context, await context.newPage())
+        const EPSServicesStatus = await EPSServices.servicesStatus()
+        if (!EPSServicesStatus) return setError(EPSServices.message)
+
+        const IPSServices = new HorisoesBot(context, await context.newPage(), '')
+        const IPSServicesStatus = await IPSServices.servicesStatus()
+        if (!IPSServicesStatus) return setError(IPSServices.message)
+
+        return true
+    }
+
+    /**
      * Verificacion de Jobs en estado **waiting** y Jobs **entrantes**.
      * 
      * Este metodo evita la insercion de nuevos Jobs si es superada la cuota maxima definida en **maxJobs**.
@@ -84,12 +108,8 @@ export class HorisoesCoosaludInitiator {
      * 
      * Estos son pasados como parametro a cada Job.     
      */
-    private async createRadicados() {
-        const browser = await execPlaywright()
-        const context = await newContext(browser)
-        const page = await context.newPage()
-
-        const EPSBot = new CooSaludBot(context, page)
+    private async createRadicados(context: BrowserContext) {
+        const EPSBot = new CooSaludBot(context, await context.newPage())
         const radicacionCodes = await EPSBot.createRadicados()
         if (!radicacionCodes) {
             this.success = EPSBot.success
@@ -97,7 +117,6 @@ export class HorisoesCoosaludInitiator {
             this.message = EPSBot.message
             return
         }
-        await browser.close()
 
         return radicacionCodes
     }
@@ -146,6 +165,12 @@ export class HorisoesCoosaludInitiator {
      * **Creacion e inicializacion de Flow y Jobs.**
      */
     async run() {
+        const browser = await execPlaywright()
+        const context = await newContext(browser)
+
+        const serviceStatus = await this.servicesHealthCheck(context)
+        if (!serviceStatus) return
+
         const availableSpace = await this.availableSpace()
         if (!availableSpace) return
 
@@ -153,7 +178,7 @@ export class HorisoesCoosaludInitiator {
         //     { code: '525920_20260602_193844', contract: 'Subsidiado'},
         //     { code: '525921_20260602_193846', contract: 'Contributivo'}
         // ]
-        const radicacionCodes = await this.createRadicados()
+        const radicacionCodes = await this.createRadicados(context)
         if (!radicacionCodes) return
 
         const execution = await this.createExecution()
@@ -178,6 +203,8 @@ export class HorisoesCoosaludInitiator {
                 }
             }
         })
+
+        await browser.close()
     }
 }
 
@@ -253,6 +280,16 @@ export class HorisoesCoosaludServices {
         this.epsCode = 'EPS042'
         this.success = true
         this.message = ''
+    }
+
+    async servicesHealthCheck(context: BrowserContext) {
+        const Initiator = new HorisoesCoosaludInitiator([])
+        await Initiator.servicesHealthCheck(context)
+
+        return {
+            success: Initiator.success,
+            message: Initiator.message
+        }
     }
 
     EPSServices(context: BrowserContext, page: Page) {
@@ -608,6 +645,7 @@ export class HorisoesCoosaludServices {
         try {
             console.log('\nProcessing files...\n')
             const sftp = await CooSaludBot.connectSftp()
+            if (!sftp) throw new Error()
 
             for (const preRadicado of preRadicadosData) {
                 const radicado = preRadicado.radicado

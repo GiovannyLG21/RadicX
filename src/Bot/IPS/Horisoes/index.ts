@@ -87,6 +87,27 @@ class HorisoesBot {
         this.message = ''
     }
 
+    public async servicesStatus() {
+        try {
+            //Horisoes
+            const login = await this.login()
+            if (!login) throw new Error(this.message)
+
+            // Googleapis
+            const googleServicesStatus = await googleapis.servicesHealthCheck()
+            if (!googleServicesStatus?.online) throw new Error(`Google Apis Error - ${googleServicesStatus?.error}`)
+
+            return true
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err)
+                this.success = false
+                this.message = `Fallo al inicializar los servicios de Horisoes: ${err.message}`
+            }
+            return false
+        }
+    }
+
     private async login() {
         const page = this.page
         const billData = this.billData
@@ -94,19 +115,30 @@ class HorisoesBot {
             await page.goto('https://horizonte.driverp.com/web')
             const login = await this.loginPage.run()
             if (!login) {
+                const message = 'No es posible iniciar sesion en ODOO'
+
+                this.success = false
+                this.message = message
                 billData.success = false
                 billData.status = 'LOGIN_FAILED'
-                billData.message = 'Error al iniciar sesion en ODOO'
+                billData.message = message
                 this.billData = billData
+                return false
             }
+            return true
         } catch (err) {
             if (err instanceof Error) {
-                console.error(err.message)
+                console.error(err)
+                const message = `Error al iniciar sesion en ODOO: ${formatError(err.message)}`
+
+                this.success = false
+                this.message = message
                 billData.success = false
                 billData.status = 'LOGIN_FAILED'
-                billData.message = `Error al iniciar sesion en ODOO: ${formatError(err.message)}`
+                billData.message = message
                 this.billData = billData
             }
+            return false
         }
     }
 
