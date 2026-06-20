@@ -44,7 +44,7 @@ export const getExecution = asyncHandler(async (req, res) => {
 /**
  * Endpoint para la ejecucion de **tests**.
  */
-export const Test1 = asyncHandler(async (req, res) => {   
+export const Test = asyncHandler(async (req, res) => {   
 
     return res.json({
         message: 'Executed',
@@ -53,7 +53,7 @@ export const Test1 = asyncHandler(async (req, res) => {
 })
 
 // TestAddJobSchedule
-export const Test = asyncHandler(async (req, res) => {
+export const TestAddJobSchedule = asyncHandler(async (req, res) => {
 
     await HorisoesCoosaludScheduler.obliterate({ force: true })
     await HorisoesCoosaludScheduler.add(
@@ -215,7 +215,7 @@ export const HorisoesCoosaludHealth = asyncHandler(async (req, res) => {
     })
 
     return res.json({
-        message: 'Services operating properly',
+        message: 'Horisoes-Coosalud Services operating properly.',
         status: 200
     })
 })
