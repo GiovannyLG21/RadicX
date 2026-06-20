@@ -44,7 +44,7 @@ export class LoginPage {
     async run() {
         const actualSession = await this.verifySession()
         if (actualSession) return true
-        await this.login()
+        await this.login()        
         const session = await this.verifySession()
         return session
     }

@@ -113,7 +113,17 @@ class HorisoesBot {
         const billData = this.billData
         try {
             await page.goto('https://horizonte.driverp.com/web')
+            //!
+            await page.screenshot({
+                path: './local/temp/before-login.png',
+                fullPage: true
+            })
             const login = await this.loginPage.run()
+            //!
+            await this.page.screenshot({
+                path: './local/temp/after-login.png',
+                fullPage: true
+            })
             if (!login) {
                 const message = 'No es posible iniciar sesion en ODOO'
 
