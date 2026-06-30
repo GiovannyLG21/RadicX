@@ -26,7 +26,7 @@ export const validateBillsFile = (req: Request, res: Response, next: NextFunctio
     const bills = fileContent
         .split(/\r\n|\n|\r/)
         .map(bill => bill.trim())
-        .filter(bill => Boolean(bill) && bill.length == 10)
+        .filter(bill => Boolean(bill) && bill.length <= 10)
 
     if (bills.length < 100 && NODE_ENV !== 'development') return res.status(400).json({
         message: 'El archivo debe tener minimo 100 facturas.',
