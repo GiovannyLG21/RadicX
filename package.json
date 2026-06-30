@@ -7,10 +7,10 @@
     "dev": "cross-env NODE_ENV=development nodemon",
     "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "start": "cross-env NODE_ENV=production node dist/server.js",
-    "start:workers": "node dist/Bot/workers.js",
+    "start:workers": "cross-env NODE_ENV=production node dist/Bot/workers.js",
     "test": "cross-env NODE_ENV=test jest",
     "seed": "pnx prisma db seed",
-    "workers": "pnx nodemon --exec tsx -r tsconfig-paths/register src/Bot/workers.ts"
+    "workers": "cross-env NODE_ENV=development pnx nodemon --exec tsx -r tsconfig-paths/register src/Bot/workers.ts"
   },
   "author": "gio_lad21",
   "license": "MIT",

@@ -59,6 +59,8 @@ async function HorisoesCoosaludFlowWorker() {
             const { executionId, radicacionCodes }: { executionId: string, radicacionCodes: RadicacionCodesType } = job.data
             const { processed, ignored } = await job.getDependencies()
 
+            if (!executionId) return
+            
             // Success & Failed Bills
             const successBills: ProcessedBillType[] = getDataFromEntries(processed, 1)
             const successLen = successBills.length
@@ -98,7 +100,7 @@ async function HorisoesCoosaludFlowWorker() {
             await executionService.finishExecution(executionId, { metadata })
 
             await context.close()
-            
+
             // Clean browser
             const waitingFlows = await HorisoesCoosaludFlowQueue.getWaitingCount()
             const waitingChildrenFlows = await HorisoesCoosaludFlowQueue.getWaitingChildrenCount()
@@ -106,7 +108,7 @@ async function HorisoesCoosaludFlowWorker() {
                 console.log('\nRefrescando navegador...')
                 await browser.close()
                 await browserManager()
-            }            
+            }
         },
         {
             connection: {
@@ -154,8 +156,8 @@ async function HorisoesCoosaludQueueWorker() {
             const context = await newContext(browser)
             const page = await context.newPage()
             // Const
-            const { bill, radicacionCodes }: JobDataType['data'] = job.data
-            const workflow = new HorisoesCoosaludWorkflow(context, page, bill, radicacionCodes)
+            const { service, radicacionCodes, bill }: JobDataType['data'] = job.data
+            const workflow = new HorisoesCoosaludWorkflow(context, page, service, radicacionCodes, bill)
 
             // Execution            
             const billData = await workflow.run()
@@ -165,6 +167,7 @@ async function HorisoesCoosaludQueueWorker() {
             const { radicado, contract, success, status, message } = billData
             const processedBill: ProcessedBillType = {
                 bill,
+                service,
                 radicado: radicado ?? '',
                 contract,
                 success,
@@ -220,14 +223,14 @@ async function HorisoesCoosaludSchedulerWorker() {
         async (job) => {
             const actualDate = formatDate(new Date())
             console.log(`Job ${job.id}_${actualDate} inicializado\n`)
-            const setFail = async (message: string) => {
+            const setFail = async (message: string | undefined) => {
                 await job.updateData({
                     ...job.data,
                     failedSchedule: {
                         date: actualDate,
                         success: false,
                         status: 'FAILED',
-                        message,
+                        message: message ?? '',
                         progress: jobProgress
                     }
                 })

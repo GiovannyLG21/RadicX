@@ -15,7 +15,6 @@ import { formatDate } from '@/utils/dates'
  * @method **uploadBill** Metodo para el cargue de archivos de una factura procesada al sftp de la plataforma
  * @method **getPreRadicadoData** Metodo para obtener los datos de un preradicado recien creado, descargando el archivo excel de la plataforma.
  * @method **getPreRadicadosData** Metodo para obtener todos los datos de los preradicados proporcionados.
- * @method **createRadicadoFile** Metodo para generar un archivo excel con las facturas de un 'pre-radicado' despues de pasar a estado 'radicado'.
  */
 class CooSaludBot {
     public epsCode: string
@@ -211,7 +210,7 @@ class CooSaludBot {
 
             const bill = billData.bill
             const radicacionCode = billData.radicado
-            const IMGFiles = billData.files.filter(file => file.code == 'XML' || file.code == 'FEV' || file.code == 'HEV')
+            const IMGFiles = billData.files.filter(file => file.code !== 'CUV' && file.code !== 'RIPS')
             const RIPSFiles = billData.files.filter(file => file.code == 'CUV' || file.code == 'RIPS')
 
             for (const file of RIPSFiles) {
