@@ -11,8 +11,10 @@ import { HorisoesCoosaludQueue } from '../config/queues'
 import { CreateExecutionReturnType } from '@/modules/Execution/execution.types'
 import { googleapis } from '@/Bot/utils'
 import { getFileType } from '@/utils/string'
-import { BillDataType, ExcelRowData, FlowChildJobType, HorisoesCoosaludMetadataType, RadicacionCodesType } from '../types'
+import { BillDataType, BillServicesType, ExcelRowData, FlowChildJobType, HorisoesCoosaludMetadataType, RadicacionCodesType } from '../types'
 import * as executionService from '@/modules/Execution/execution.service'
+import { NODE_ENV } from '@/config/env'
+const TEST = NODE_ENV === 'development' && true
 
 /**
  * @class **Iniciador** de un workflow para la creacion de un Flow y sus Jobs. 
@@ -52,7 +54,8 @@ export class HorisoesCoosaludInitiator {
     private maxJobs: number
 
     constructor(
-        private bills: string[]
+        private bills: string[],
+        private service: BillServicesType
     ) {
         this.ipsCode = '901749264'
         this.epsCode = 'EPS042'
@@ -66,24 +69,24 @@ export class HorisoesCoosaludInitiator {
      * Metodo para la **verificacion del estado de los servicios** del workflow.
      * @param {BrowserContext} context Contexto del browser      
      */
-    public async servicesHealthCheck(context: BrowserContext) {
+    static async servicesHealthCheck(context: BrowserContext): Promise<{ success: boolean, message?: string }> {
 
-        const setError = (message: string) => {
-            this.status = 500
-            this.success = false
-            this.message = message
-            return false
-        }
+        const setError = (message: string) => ({
+            success: false,
+            message
+        })
 
         const EPSServices = new CooSaludBot(context, await context.newPage())
         const EPSServicesStatus = await EPSServices.servicesStatus()
         if (!EPSServicesStatus) return setError(EPSServices.message)
 
-        const IPSServices = new HorisoesBot(context, await context.newPage(), '')
+        const IPSServices = new HorisoesBot(context, await context.newPage(), '', '')
         const IPSServicesStatus = await IPSServices.servicesStatus()
         if (!IPSServicesStatus) return setError(IPSServices.message)
 
-        return true
+        return {
+            success: true
+        }
     }
 
     /**
@@ -109,6 +112,14 @@ export class HorisoesCoosaludInitiator {
      * Estos son pasados como parametro a cada Job.     
      */
     private async createRadicados(context: BrowserContext) {
+        if (TEST) {
+            const radicacionCodes: RadicacionCodesType = [
+                { code: '525921_20260602_193846', contract: 'Contributivo' },
+                { code: '525920_20260602_193844', contract: 'Subsidiado' }
+            ]
+            return radicacionCodes
+        }
+
         const EPSBot = new CooSaludBot(context, await context.newPage())
         const radicacionCodes = await EPSBot.createRadicados()
         if (!radicacionCodes) {
@@ -125,6 +136,7 @@ export class HorisoesCoosaludInitiator {
      * Metodo para la creacion de una **ejecución**.     
      */
     private async createExecution() {
+        if (TEST) return
         const execution = await executionService.createExecution({ ipsCode: this.ipsCode, epsCode: this.epsCode })
         this.execution = execution
         return execution
@@ -135,18 +147,19 @@ export class HorisoesCoosaludInitiator {
      * @param {CreateExecutionReturnType} execution Datos de la ejecucion creada
      * @param {RadicacionCodesType} radicacionCodes Datos de los codigos de radicados
      */
-    private createJobs(execution: CreateExecutionReturnType, radicacionCodes: RadicacionCodesType) {
+    private createJobs(execution: CreateExecutionReturnType | undefined, service: BillServicesType, radicacionCodes: RadicacionCodesType) {
         const Jobs: FlowChildJobType[] = this.bills.map((bill, index) => ({
             name: `horisoes_coosalud_bill_${bill}`,
             queueName: 'horisoes_coosalud_queue',
             data: {
-                executionId: execution.id,
-                flow: `horisoes_coosalud_flow_${execution.id}`,
+                executionId: execution?.id,
+                flow: `horisoes_coosalud_flow_${execution?.id}`,
+                service,
+                radicacionCodes,
                 bill,
-                radicacionCodes
             },
             opts: {
-                jobId: `${index + 1}_horisoes_coosalud_${bill}_${execution.id}`,
+                jobId: `${index + 1}_horisoes_coosalud_${bill}_${execution?.id}`,
                 attempts: 5,
                 backoff: {
                     type: 'exponential',
@@ -168,27 +181,29 @@ export class HorisoesCoosaludInitiator {
         const browser = await execPlaywright()
         const context = await newContext(browser)
 
-        const serviceStatus = await this.servicesHealthCheck(context)
-        if (!serviceStatus) return
+        const serviceStatus = await HorisoesCoosaludInitiator.servicesHealthCheck(context)
+        if (!serviceStatus.success) {
+            this.status = 500
+            this.success = false
+            this.message = serviceStatus.message ?? ''
+            return
+        }
 
         const availableSpace = await this.availableSpace()
         if (!availableSpace) return
 
-        // const radicacionCodes: RadicacionCodesType = [
-        //     { code: '525920_20260602_193844', contract: 'Subsidiado'},
-        //     { code: '525921_20260602_193846', contract: 'Contributivo'}
-        // ]
         const radicacionCodes = await this.createRadicados(context)
         if (!radicacionCodes) return
 
         const execution = await this.createExecution()
 
-        const Jobs = this.createJobs(execution, radicacionCodes)
+        const Jobs = this.createJobs(execution, this.service, radicacionCodes)
 
         await HorisoesCoosaludFlow.add({
-            name: `horisoes_coosalud_flow_${execution.id}`,
+            name: `horisoes_coosalud_flow_${execution?.id}`,
             data: {
-                executionId: execution.id,
+                executionId: execution?.id,
+                service: this.service,
                 radicacionCodes: radicacionCodes,
                 bills_cant: this.bills.length,
                 bills: this.bills
@@ -231,19 +246,26 @@ export class HorisoesCoosaludWorkflow {
     constructor(
         private context: BrowserContext,
         private page: Page,
-        private bill: string,
-        private radicacionCodes: RadicacionCodesType
+        private service: BillServicesType,
+        private radicacionCodes: RadicacionCodesType,
+        private bill: string
     ) {
-        this.IPSBot = new HorisoesBot(this.context, this.page, this.bill)
+        this.IPSBot = new HorisoesBot(this.context, this.page, this.service, this.bill)
         this.EPSBot = new CooSaludBot(this.context, this.page)
         this.billData = this.IPSBot.billData
     }
 
     async run() {
+        // Get service
+        const availableServices = HorisoesBot.availableServices
+        const selectedService = availableServices[this.service]
+        const billService = this.IPSBot.services[selectedService as keyof typeof this.IPSBot.services]
+
         // Get files
         await this.IPSBot.getBillFiles()
         await this.IPSBot.getRipsFiles()
-        await this.IPSBot.getHEVFiles()
+        await billService()
+
         const billData = this.IPSBot.billData
 
         // Set preradicado
@@ -251,13 +273,16 @@ export class HorisoesCoosaludWorkflow {
         if (radicadoCode) billData.radicado = radicadoCode
 
         // Upload bill
-        await this.EPSBot.uploadBill(billData)
+        if (!TEST) await this.EPSBot.uploadBill(billData)
 
         this.billData = billData
         return billData
     }
 }
 
+/**
+ * @class Servicios del **Workflow** usados directamente por un worker.
+ */
 export class HorisoesCoosaludServices {
     private ipsCode: string
 
@@ -283,13 +308,7 @@ export class HorisoesCoosaludServices {
     }
 
     async servicesHealthCheck(context: BrowserContext) {
-        const Initiator = new HorisoesCoosaludInitiator([])
-        await Initiator.servicesHealthCheck(context)
-
-        return {
-            success: Initiator.success,
-            message: Initiator.message
-        }
+        return await HorisoesCoosaludInitiator.servicesHealthCheck(context)
     }
 
     EPSServices(context: BrowserContext, page: Page) {

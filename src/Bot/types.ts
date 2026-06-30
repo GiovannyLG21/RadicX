@@ -1,7 +1,6 @@
-import { Page } from 'playwright'
 import { FlowChildJob } from 'bullmq'
 import { CellValue } from 'exceljs'
-import { HorisoesCoosaludInitiator } from './Workflows/horisoes-coosalud.workflow';
+import { HorisoesCoosaludInitiator } from './Workflows/horisoes-coosalud.workflow'
 
 export interface WorkflowType {
     name: string
@@ -10,28 +9,20 @@ export interface WorkflowType {
     initiator: typeof HorisoesCoosaludInitiator
 }
 
-//* Bot Types
-export type IPSBotType = (page: Page, bill: string) => Promise<BillDataType>
-export type EPSBotType = (page: Page, bill: string, radicacionCodes: RadicacionCodesType) => Promise<BillDataType>
+//* Flow & Job Types
+export type FlowChildJobType = FlowChildJob & JobDataType
 
-
-//* Worker Types
 export interface JobDataType {
     data: {
-        bill: string,
-        radicacionCodes: RadicacionCodesType
+        service: BillServicesType,
+        radicacionCodes: RadicacionCodesType,
+        bill: string
     }
 }
 
-export type FlowChildJobType = JobDataType & FlowChildJob
+//* Bill Types
 
-//* Bill Status Type
-export interface BillInfoType {
-    success: boolean,
-    status: BillStatusType,
-    message: string
-}
-
+//? Bill Status
 export type BillStatusType =
     | 'LOGIN_FAILED'
     | 'NOT_FOUND'
@@ -43,21 +34,30 @@ export type BillStatusType =
     | 'SUCCESS'
     | null
 
+export interface BillInfoType {
+    success: boolean,
+    status: BillStatusType,
+    message: string
+}
 
-//* Bill Data Type
+//? Bill Data
 export type BillDataType = BaseBillDataType & BillInfoType
+
+export type BillServicesType = 'FRAMINGHAM' | 'GESTION_TERRITORIAL' | 'FIEBRE_AMARILLA' | 'POLIVALENTE' | ''
+
+export type BillFileCodesType = 'FEV' | 'XML' | 'CUV' | 'RIPS' | 'HEV'
 
 interface BaseBillDataType {
     bill: string,
+    service: BillServicesType
     radicado?: string,
     contract: 'Contributivo' | 'Subsidiado' | null,
     files: {
-        code: 'FEV' | 'XML' | 'CUV' | 'RIPS' | 'HEV'
+        code: BillFileCodesType
         name: string,
         buffer: Buffer<ArrayBufferLike>
     }[]
 }
-
 
 //* Others
 export interface LoginDataType {

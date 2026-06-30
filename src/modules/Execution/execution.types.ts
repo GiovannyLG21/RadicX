@@ -1,8 +1,9 @@
 import { createExecution } from './execution.service'
-import { WorkflowType } from '@/Bot/types'
+import { BillServicesType, WorkflowType } from '@/Bot/types'
 
 export interface ExecutionDataType {
-    workflow: WorkflowType
+    workflow: WorkflowType,
+    service: BillServicesType
 }
 
 export interface CreateExecutionDataType {

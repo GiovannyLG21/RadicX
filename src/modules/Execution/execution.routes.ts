@@ -1,9 +1,10 @@
 import { Router } from 'express'
-import { upload } from '@/middlewares'
+import { upload, validateScheme } from '@/middlewares'
 import { validateBillsFile } from '@/Bot/middlewares'
 import { Workflows } from '@/Bot/index'
 import { validateWorkflow } from './execution.middleware'
 import * as executionController from './execution.controller'
+import { HorisoesCoosaludScheme } from './execution.scheme'
 
 const router: Router = Router()
 
@@ -25,6 +26,7 @@ router.get('/horisoes/coosalud/health',
 
 router.post('/horisoes/coosalud/execute',
     upload.single('bills'),
+    validateScheme(HorisoesCoosaludScheme),
     validateBillsFile,
     validateWorkflow(Workflows.HorisoesCoosaludWorkflow),
     executionController.HorisoesCoosaludExecution)

@@ -1,22 +1,38 @@
 import { BrowserContext, Page } from 'playwright'
 import BillFlow from './modules/bill.flow'
 import RIPSFlow from './modules/rips.flow'
-import { BillDataType, LoginDataType } from '@/Bot/types'
+import { BillDataType, BillServicesType, LoginDataType } from '@/Bot/types'
 import { LoginPage, formatError, googleapis } from '@/Bot/utils'
-import { CREDENTIALS, HEV_FOLDER_ID } from './config/config'
+import { CREDENTIALS, FA_FOLDER_ID, FG_FOLDER_ID, GT_FOLDER_ID, PV_FOLDER_ID } from './config/config'
 
 /**
  * @class **Clase Bot** perteneciente a la **IPS Horisoes**.
  *  
  * @method **getBillFiles** Metodo para obtener el archivo de una factura de acuerdo al codigo de factura proporcionado.    
  * @method **getRIPSFiles** Metodo para obtener el archivo de una factura de acuerdo al codigo de factura proporcionado.    
- * @method **getHEVFiles** Metodo para definir un fallo en billData por una respuesta del BillFlow o RIPSFlow.    
- * @method **updatePreRadicadoFile** Metodo para actualizar el archivo excel (archivo de seguimiento) en drive insertando un nuevo pre-radicado.
  * 
  * Cada metodo ejecutado retorna "void", en cambio, actualiza la variable 'billData' segun el resultado de la ejecucion. 
  * Esta contiene toda la informacion del proceso. 
  */
 class HorisoesBot {
+
+    static availableServices: Record<string, string> = {
+        'FRAMINGHAM': 'FG',
+        'GESTION_TERRITORIAL': 'GT',
+        'FIEBRE_AMARILLA': 'FA',
+        'POLIVALENTE': 'PV'
+    }
+
+    /**
+     * @param {string[]} services Listado de los servicios (distintas formas de cargar una factura) del bot.     
+    */
+    public services = {
+        FG: () => this.getFGFile(), // Framinghan
+        GT: () => this.getGTFile(), // Gestion territorial
+        FA: () => this.getFAFile(), // Fiebre amarilla
+        PV: () => this.getPVFile() // Polivalente
+    }
+
     public ipsCode: string
 
     /**
@@ -59,6 +75,7 @@ class HorisoesBot {
     constructor(
         private context: BrowserContext,
         private page: Page,
+        private service: BillServicesType,
         private bill: string,
     ) {
         this.ipsCode = '901749264'
@@ -75,6 +92,7 @@ class HorisoesBot {
         this.loginPage = new LoginPage(this.context, this.page, this.loginData)
         this.billData = {
             bill: this.bill,
+            service: this.service,
             contract: null,
             success: true,
             status: null,
@@ -162,6 +180,7 @@ class HorisoesBot {
 
         this.billData = {
             bill: this.bill,
+            service: this.service,
             contract: billContract,
             success: true,
             status: 'SUCCESS',
@@ -187,48 +206,120 @@ class HorisoesBot {
         this.billData.message = 'Factura & RIPS descargados'
     }
 
+    //* Services
+
     /**
-     * Metodo para obtener el archivo HEV de una factura.    
+     * Metodo para **extraer el documento del usuario** desde el archivo RIPS en billData.     
+     * @returns ```ts
+     * {
+            userDocType: 'CC',
+            userDocNum: '1234567890',
+            userDoc: 'CC1234567890',
+        }
+     * ```
      */
-    async getHEVFiles() {
-        const billData = this.billData
+    private getUserDoc() {
+        const RIPSFileBuffer = this.billData.files.find(file => file.code == 'RIPS')?.buffer
+        if (!RIPSFileBuffer) throw new Error('RIPS no encontrado')
+        const RIPSfileData = RIPSFileBuffer.toString('utf-8')
+        const fileDataParse = JSON.parse(RIPSfileData)
+
+        const userDocType: string = fileDataParse['usuarios'][0]['tipoDocumentoIdentificacion']
+        const userDocNum: string = fileDataParse['usuarios'][0]['numDocumentoIdentificacion']
+        const userDoc = userDocType + userDocNum
+
+        return {
+            userDocType,
+            userDocNum,
+            userDoc,
+        }
+    }
+
+    private async getDriveFile(folderId: string, searchName: string, service: BillServicesType) {
         try {
-            if (!billData.success) return
-            const RIPSFileBuffer = billData.files.find(file => file.code == 'RIPS')?.buffer
-            if (!RIPSFileBuffer) throw new Error('RIPS no encontrado')
-            const RIPSfileData = RIPSFileBuffer.toString('utf-8')
-            const fileDataParse = JSON.parse(RIPSfileData)
-
-            const userDocType: string = fileDataParse['usuarios'][0]['tipoDocumentoIdentificacion']
-            const userDocNum: string = fileDataParse['usuarios'][0]['numDocumentoIdentificacion']
-            const userDoc = userDocType + userDocNum
-
-            const HEVFile = await googleapis.drive.downloadDriveFile(HEV_FOLDER_ID, `${userDoc}_FRAMINGHAM_signed.pdf`)
-            if (!HEVFile) {
-                billData.success = false
-                billData.status = 'NOT_FOUND'
-                billData.message = 'HEV no encontrado'
-                this.billData = billData
+            const driveFile = await googleapis.drive.downloadDriveFile(folderId, searchName)
+            if (!driveFile) {
+                this.billData.success = false
+                this.billData.status = 'NOT_FOUND'
+                this.billData.message = `HEV (${service}) no encontrado`
                 return
             }
 
-            billData.message = 'Factura, RIPS & HEV descargados'
-            billData.files.push({
+            this.billData.message = `Factura, RIPS & HEV (${service}) descargados`
+            this.billData.files.push({
                 code: 'HEV',
                 name: `HEV_901011395_${this.bill}.pdf`,
-                buffer: HEVFile
+                buffer: driveFile
             })
 
-            this.billData = billData
         } catch (err) {
             if (err instanceof Error) {
                 console.error(err)
-                billData.success = false
-                billData.status = 'ERROR'
-                billData.message = `Error al descargar HEV: ${formatError(err.message)}`
-                this.billData = billData
+                this.billData.success = false
+                this.billData.status = 'ERROR'
+                this.billData.message = `Error al descargar HEV (${service}): ${formatError(err.message)}`
             }
         }
+    }
+
+    /**
+     * **Service FG**: --FRAMINGHAM--
+     * 
+     * Metodo para obtener el archivo HEV de una factura.    
+     */
+    async getFGFile() {
+        if (!this.billData.success) return
+        const folderId = FG_FOLDER_ID
+        const { userDoc } = this.getUserDoc()
+        const searchName = `${userDoc}_FRAMINGHAM_signed.pdf`
+        const service = 'FRAMINGHAM'
+
+        await this.getDriveFile(folderId, searchName, service)
+    }
+
+    /**
+     * **Service GT**: --GESTION TERRITORIAL--
+     * 
+     * Metodo para obtener el archivo GT de una factura.    
+     */
+    async getGTFile() {
+        if (!this.billData.success) return
+        const folderId = GT_FOLDER_ID
+        const { userDocNum } = this.getUserDoc()
+        const searchName = `${userDocNum}_GESTION_TERRITORIAL.pdf`
+        const service = 'GESTION_TERRITORIAL'
+
+        await this.getDriveFile(folderId, searchName, service)
+    }
+
+    /**
+     * **Service FA**: --FIEBRE AMARILLA--
+     * 
+     * Metodo para obtener el archivo FA de una factura.    
+     */
+    async getFAFile() {
+        if (!this.billData.success) return
+        const folderId = FA_FOLDER_ID
+        const { userDoc } = this.getUserDoc()
+        const searchName = `${userDoc}_FA_signed.pdf`
+        const service = 'FIEBRE_AMARILLA'
+
+        await this.getDriveFile(folderId, searchName, service)
+    }
+
+    /**
+     * **Service PV**: --POLIVALENTE--
+     * 
+     * Metodo para obtener el archivo FA de una factura.    
+     */
+    async getPVFile() {
+        if (!this.billData.success) return
+        const folderId = PV_FOLDER_ID
+        const { userDoc } = this.getUserDoc()
+        const searchName = `${userDoc}_PV_signed.pdf`
+        const service = 'POLIVALENTE'
+
+        await this.getDriveFile(folderId, searchName, service)
     }
 
     /**

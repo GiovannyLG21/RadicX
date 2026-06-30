@@ -20,7 +20,7 @@ export class LoginPage {
 
     private async verifySession() {
         return await this.page.locator(this.data.sessionSelector)
-            .waitFor({ state: 'visible' })
+            .waitFor({ state: 'visible', timeout: 8000 })
             .then(() => true)
             .catch(() => false)
     }
@@ -32,6 +32,7 @@ export class LoginPage {
         await this.page.locator(this.data.passwordSelector).fill(this.data.credentials.password)
         //Button
         await this.page.click(this.data.buttonSelector)
+        //Save session
         this.context.storageState({
             path: 'playwright-data/session.json'
         })

@@ -1,3 +1,4 @@
+import fs from 'fs'
 import { asyncHandler } from '@/middlewares'
 import { execPlaywright, newContext } from '@/Bot/config/browser'
 import { getDateTime } from '@/utils/dates'
@@ -5,8 +6,8 @@ import { ExecutionDataType } from './execution.types'
 import { HorisoesCoosaludMetadataType } from '@/Bot/types'
 import * as executionService from './execution.service'
 import { HorisoesCoosaludServices } from '@/Bot/Workflows/horisoes-coosalud.workflow'
-import fs from 'fs'
 import { HorisoesCoosaludScheduler } from '@/Bot/config/queues'
+import HorisoesBot from '@/Bot/IPS/Horisoes'
 
 //* Main
 export const executions = asyncHandler(async (_req, res) => {
@@ -46,8 +47,18 @@ export const getExecution = asyncHandler(async (req, res) => {
  */
 export const Test = asyncHandler(async (req, res) => {   
 
+    const browser = await execPlaywright()
+    const context = await newContext(browser)
+    const page = await context.newPage()
+
+    const EPSBot = new HorisoesBot(context, page, '', 'FVEP78276')
+    await EPSBot.getBillFiles()
+    await EPSBot.getRipsFiles()
+    await EPSBot.getGTFile()
+
     return res.json({
         message: 'Executed',
+        data: EPSBot.billData,
         status: 200
     })
 })
@@ -147,7 +158,7 @@ export const TestHorisoesCoosaludScheduler = asyncHandler(async (req, res) => {
  */
 export const HorisoesCoosaludExecution = asyncHandler(async (req, res) => {
     const bills: string[] = req.body.bills
-    const { workflow }: ExecutionDataType = req.body
+    const { workflow, service }: ExecutionDataType = req.body
     const { ipsCode, epsCode } = workflow
 
     //* Available Execution
@@ -169,7 +180,7 @@ export const HorisoesCoosaludExecution = asyncHandler(async (req, res) => {
     }
 
     //* Workflow run initiator | Creation of flow and jobs
-    const WorkflowInitiator = new workflow.initiator(bills)
+    const WorkflowInitiator = new workflow.initiator(bills, service)
     await WorkflowInitiator.run()
 
     if (!WorkflowInitiator.success) return res.status(WorkflowInitiator.status).json({
@@ -204,18 +215,18 @@ export const HorisoesCoosaludHealth = asyncHandler(async (req, res) => {
     const browser = await execPlaywright()
     const context = await newContext(browser)
 
-    const WorkflowInitiator = new workflow.initiator([])
-    await WorkflowInitiator.servicesHealthCheck(context)
+    const WorkflowInitiator = workflow.initiator
+    const servicesStatus = await WorkflowInitiator.servicesHealthCheck(context)
 
     await browser.close()
 
-    if (!WorkflowInitiator.success) return res.status(WorkflowInitiator.status).json({
-        message: WorkflowInitiator.message,
-        status: WorkflowInitiator.status
+    if (!servicesStatus.success) return res.status(500).json({
+        message: servicesStatus.message,
+        status: 500
     })
 
     return res.json({
-        message: 'Horisoes-Coosalud Services operating properly.',
+        message: 'Horisoes-Coosalud services operating properly.',
         status: 200
     })
 })
