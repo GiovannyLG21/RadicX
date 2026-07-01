@@ -316,7 +316,7 @@ class HorisoesBot {
         if (!this.billData.success) return
         const folderId = PV_FOLDER_ID
         const { userDoc } = this.getUserDoc()
-        const searchName = `${userDoc}_FA_signed.pdf`
+        const searchName = `${userDoc}_PENTA.pdf`
         const service = 'PENTAVALENTE'
 
         await this.getDriveFile(folderId, searchName, service)

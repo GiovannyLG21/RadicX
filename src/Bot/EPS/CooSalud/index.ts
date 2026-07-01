@@ -308,6 +308,21 @@ class CooSaludBot {
             if (!this.success) return
 
             await this.page.goto('https://vco.ctamedicas.com/app/radicaciones')
+            
+            const previousDate = new Date()
+            previousDate.setMonth(previousDate.getMonth() - 1)
+
+            const initDate = formatDate(previousDate, 'REVERSED')
+            const finalDate = formatDate(new Date(), 'REVERSED')
+
+            //Set 'Filtro Fecha'
+            await this.page.locator('#filterBy').selectOption('radicacion.creacion_fecha')
+            // Set 'Fecha Inicio'
+            await this.page.locator('#fechaIni').fill(initDate)
+            // Set 'Fecha Fin'
+            await this.page.locator('#fechaFin').fill(finalDate)
+            // Button 'Consultar'
+            await this.page.locator('#btBolsaSearchRads').click()
 
             const data: ExcelRowData[] = []
             let attempts = 0
@@ -366,7 +381,7 @@ class CooSaludBot {
             await this.page.goto('https://vco.ctamedicas.com/app/radicaciones')
 
             const initDate = '2026-01-01'
-            const actualDate = formatDate(new Date(), 'RESVERSED')
+            const actualDate = formatDate(new Date(), 'REVERSED')
             //Set 'Filtro Fecha'
             await this.page.locator('#filterBy').selectOption('radicacion.creacion_fecha')
             // Set 'Fecha Inicio'

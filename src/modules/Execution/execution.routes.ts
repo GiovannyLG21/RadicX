@@ -24,6 +24,9 @@ router.get('/horisoes/coosalud/health',
     validateWorkflow(Workflows.HorisoesCoosaludWorkflow),
     executionController.HorisoesCoosaludHealth)
 
+router.get('/horisoes/coosalud/scheduler',
+    executionController.HorisoesCoosaludSchedulerEx)
+
 router.post('/horisoes/coosalud/execute',
     upload.single('bills'),
     validateScheme(HorisoesCoosaludScheme),
