@@ -252,6 +252,21 @@ class CooSaludBot {
 
             await this.page.goto('https://vco.ctamedicas.com/app/radicaciones')
 
+            const previousDate = new Date()
+            previousDate.setMonth(previousDate.getMonth() - 1)
+
+            const initDate = formatDate(previousDate, 'REVERSED')
+            const finalDate = formatDate(new Date(), 'REVERSED')
+
+            //Set 'Filtro Fecha'
+            await this.page.locator('#filterBy').selectOption('radicacion.creacion_fecha')
+            // Set 'Fecha Inicio'
+            await this.page.locator('#fechaIni').fill(initDate)
+            // Set 'Fecha Fin'
+            await this.page.locator('#fechaFin').fill(finalDate)
+            // Button 'Consultar'
+            await this.page.locator('#btBolsaSearchRads').click()
+
             let data: ExcelRowData = []
             let attempts = 0
             while (attempts < 5 && !data.length) {
@@ -348,7 +363,7 @@ class CooSaludBot {
                     const statusCell = String(row.getCell(12).value).trim()
                     if (codes.includes(codeCell) && statusCell !== 'CREADA' && statusCell !== 'CARPETA') {
                         // Fecha radicacion column
-                        const fechaRadicacion = row.getCell(8).value as string
+                        const fechaRadicacion = row.getCell(8).value as string                        
                         if (fechaRadicacion) row.getCell(8).value = formatDate(new Date(fechaRadicacion))
 
                         const rowValues = row.values as ExcelJS.CellValue[]
