@@ -368,28 +368,20 @@ export class HorisoesCoosaludServices {
     async updatePreRadicadosFile(data: ExcelRowData[]) {
         try {
             const sheet = 'Radicados'
-            const fileCodes = await googleapis.sheets.getValues(EXCEL_FILE_ID, 'Radicados', 'E:E')
+            let fileCodes = await googleapis.sheets.getValues(EXCEL_FILE_ID, 'Radicados', 'E:E')
 
             const preRadicadosData = []
             for (const preRadicado of data) {
                 const date = preRadicado[7] as string
                 const code = preRadicado[4] as string
                 const radicado = preRadicado[10] as string
-                const rowIndex = fileCodes.findIndex(row => row[0] === code)
+                let rowIndex = fileCodes.findIndex(row => row[0] === code)
 
                 // Preradicado not found - insert
                 if (!rowIndex) {
                     await googleapis.sheets.insertValues(EXCEL_FILE_ID, sheet, 'A:L', preRadicado)
-                    if (!radicado) {
-                        const range = {
-                            startColumn: 0,
-                            endColumn: 12,
-                            startRow: rowIndex,
-                            endRow: rowIndex + 1
-                        }
-                        await googleapis.sheets.styles.changeCellBgColor(EXCEL_FILE_ID, sheet, range, '255, 0, 0')
-                    }
-                    continue
+                    fileCodes = await googleapis.sheets.getValues(EXCEL_FILE_ID, 'Radicados', 'E:E')
+                    rowIndex = fileCodes.findIndex(row => row[0] === code)
                 }
 
                 // Update row
@@ -671,7 +663,7 @@ export class HorisoesCoosaludServices {
 
                 console.log(`Downloading ${preRadicado.code} folder`)
                 const downloadSftpFolder = await CooSaludBot.getSftpFolder(sftp, preRadicado.code)
-                if (!downloadSftpFolder) throw new Error()
+                if (!downloadSftpFolder) continue
                 console.log(`Folder ${preRadicado.code} downloaded`)
 
                 const folderPath = path.join(process.cwd(), 'local', preRadicado.code)

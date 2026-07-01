@@ -1,6 +1,8 @@
+import { ODOO_PASSWORD, ODOO_USER } from '@/config/env'
+
 export const CREDENTIALS = {
-    user: String(process.env.ODOO_USER),
-    password: String(process.env.ODOO_PASSWORD)
+    user: ODOO_USER,
+    password: ODOO_PASSWORD
 }
 
 export const FG_FOLDER_ID = '1VJD2zjdvNG5ysgQOoAxq6GOwIZ-MxGRe'

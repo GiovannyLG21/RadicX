@@ -1,4 +1,5 @@
 import fs from 'fs'
+import crypto from 'crypto'
 import { asyncHandler } from '@/middlewares'
 import { execPlaywright, newContext } from '@/Bot/config/browser'
 import { getDateTime } from '@/utils/dates'
@@ -44,8 +45,8 @@ export const getExecution = asyncHandler(async (req, res) => {
 /**
  * Endpoint para la ejecucion de **tests**.
  */
-export const Test = asyncHandler(async (req, res) => {   
-   
+export const Test = asyncHandler(async (req, res) => {
+
     return res.json({
         message: 'Executed',
         status: 200
@@ -111,26 +112,25 @@ export const TestHorisoesCoosaludScheduler = asyncHandler(async (req, res) => {
     const EPSService = HorisoesCoosaludService.EPSServices(context, page)
 
     // Single
-    // const preRadicado = '539269_20260619_153422'
+    // const preRadicado = '525920_20260602_193844'
     // const preRadicadoData = await EPSService.getPreRadicadoData(preRadicado)
     // if (!preRadicadoData) throw new Error('')
-    // await HorisoesCoosaludService.insertPreRadicadoData(preRadicadoData)
 
 
     // Multiple
     // const preRadicados = await HorisoesCoosaludService.getPreRadicadosCreated()
-    const preRadicados = ['525921_20260602_193846']
+    const preRadicados = ['525920_20260602_193844']
     const preRadicadosData = await EPSService.getPreRadicadosData(preRadicados)
     if (!preRadicadosData) return res.status(500).json({ message: EPSService.message })
 
-    const updatePreRadicados = await HorisoesCoosaludService.updatePreRadicadosFile(preRadicadosData)
-    if (!updatePreRadicados) return res.status(500).json({ message: HorisoesCoosaludService.message })
+    // const updatePreRadicados = await HorisoesCoosaludService.updatePreRadicadosFile(preRadicadosData)
+    // if (!updatePreRadicados) return res.status(500).json({ message: HorisoesCoosaludService.message })
 
-    const createRadicadosSheet = await HorisoesCoosaludService.createRadicadosSheet(updatePreRadicados)
-    if (!createRadicadosSheet) return res.status(500).json({ message: HorisoesCoosaludService.message })
+    // const createRadicadosSheet = await HorisoesCoosaludService.createRadicadosSheet(updatePreRadicados)
+    // if (!createRadicadosSheet) return res.status(500).json({ message: HorisoesCoosaludService.message })
 
-    const uploadRadicadoFiles = await HorisoesCoosaludService.updateRadicadosFolder(context, page, updatePreRadicados)
-    if (!uploadRadicadoFiles) return res.status(500).json({ message: HorisoesCoosaludService.message })
+    // const uploadRadicadoFiles = await HorisoesCoosaludService.updateRadicadosFolder(context, page, updatePreRadicados)
+    // if (!uploadRadicadoFiles) return res.status(500).json({ message: HorisoesCoosaludService.message })
 
     return res.json({
         message: 'Executed',
@@ -300,6 +300,32 @@ export const HorisoesCoosaludProccesed = asyncHandler(async (req, res) => {
     return res.json({
         message: `Ejecuciones IPS-${ipsCode} EPS-${epsCode}`,
         data: processedStructure,
+        status: 200
+    })
+})
+
+/**
+ * Endpoint para añadir un job al scheduler.
+ */
+export const HorisoesCoosaludSchedulerEx = asyncHandler(async (req, res) => {
+
+    await HorisoesCoosaludScheduler.add(
+        'check-preradicados-job',
+        {},
+        {
+            jobId: `horisoes_coosalud_manual_repeteable_job_${crypto.randomInt(1000000000000, 9999999999999)}` ,
+            attempts: 5,
+            backoff: {
+                type: 'exponential',
+                delay: 3000
+            },
+            removeOnComplete: false,
+            removeOnFail: false
+        }
+    )
+
+    return res.json({
+        message: 'Horisoes-Coosalud Scheduler added.',
         status: 200
     })
 })
