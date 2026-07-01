@@ -330,7 +330,8 @@ class CooSaludBot {
                 // Find codes             
                 worksheet?.eachRow((row) => {
                     const codeCell = String(row.getCell(5).value).trim()
-                    if (codes.includes(codeCell)) {
+                    const statusCell = String(row.getCell(12).value).trim()
+                    if (codes.includes(codeCell) && statusCell !== 'CREADA' && statusCell !== 'CARPETA') {
                         // Fecha radicacion column
                         const fechaRadicacion = row.getCell(8).value as string
                         if (fechaRadicacion) row.getCell(8).value = formatDate(new Date(fechaRadicacion))

@@ -148,7 +148,7 @@ export const googleapis = {
         /**
          * Metodo para crear una carpeta en Google Drive segun una carpeta padre.
          * @param {string} parentId Id de la carpeta padre
-         * @param {string} folderName Nombre de la carpeta buscada
+         * @param {string} folderName Nombre de la carpeta a crear
          */
         async createDriveFolder(parentId: string, folderName: string) {
             const res = await drive.files.create({
@@ -157,7 +157,8 @@ export const googleapis = {
                     mimeType: 'application/vnd.google-apps.folder',
                     parents: [parentId]
                 },
-                fields: 'id, name'
+                fields: 'id, name',
+                supportsAllDrives: true                
             })
             return res.data.id
         },
@@ -170,7 +171,6 @@ export const googleapis = {
          */
         async uploadDriveFile(parentId: string, fileName: string, buffer: Buffer<ArrayBufferLike>) {
             const res = await drive.files.create({
-                supportsAllDrives: true,
                 requestBody: {
                     name: fileName,
                     parents: [parentId]
@@ -179,7 +179,8 @@ export const googleapis = {
                     mimeType: mime.lookup(fileName) || 'application/octet-stream',
                     body: Readable.from(buffer)
                 },
-                fields: 'id, name'
+                fields: 'id, name',
+                supportsAllDrives: true                
             })
             return res.data.id
         },
