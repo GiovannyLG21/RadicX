@@ -7,7 +7,6 @@ import { HorisoesCoosaludMetadataType } from '@/Bot/types'
 import * as executionService from './execution.service'
 import { HorisoesCoosaludServices } from '@/Bot/Workflows/horisoes-coosalud.workflow'
 import { HorisoesCoosaludScheduler } from '@/Bot/config/queues'
-import HorisoesBot from '@/Bot/IPS/Horisoes'
 
 //* Main
 export const executions = asyncHandler(async (_req, res) => {
@@ -46,19 +45,9 @@ export const getExecution = asyncHandler(async (req, res) => {
  * Endpoint para la ejecucion de **tests**.
  */
 export const Test = asyncHandler(async (req, res) => {   
-
-    const browser = await execPlaywright()
-    const context = await newContext(browser)
-    const page = await context.newPage()
-
-    const EPSBot = new HorisoesBot(context, page, '', 'FVEP78276')
-    await EPSBot.getBillFiles()
-    await EPSBot.getRipsFiles()
-    await EPSBot.getGTFile()
-
+   
     return res.json({
         message: 'Executed',
-        data: EPSBot.billData,
         status: 200
     })
 })
@@ -130,7 +119,7 @@ export const TestHorisoesCoosaludScheduler = asyncHandler(async (req, res) => {
 
     // Multiple
     // const preRadicados = await HorisoesCoosaludService.getPreRadicadosCreated()
-    const preRadicados = ['525920_20260602_193844']
+    const preRadicados = ['525921_20260602_193846']
     const preRadicadosData = await EPSService.getPreRadicadosData(preRadicados)
     if (!preRadicadosData) return res.status(500).json({ message: EPSService.message })
 

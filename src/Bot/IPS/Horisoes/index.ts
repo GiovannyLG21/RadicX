@@ -20,7 +20,7 @@ class HorisoesBot {
         'FRAMINGHAM': 'FG',
         'GESTION_TERRITORIAL': 'GT',
         'FIEBRE_AMARILLA': 'FA',
-        'POLIVALENTE': 'PV'
+        'PENTAVALENTE': 'PV'
     }
 
     /**
@@ -30,7 +30,7 @@ class HorisoesBot {
         FG: () => this.getFGFile(), // Framinghan
         GT: () => this.getGTFile(), // Gestion territorial
         FA: () => this.getFAFile(), // Fiebre amarilla
-        PV: () => this.getPVFile() // Polivalente
+        PV: () => this.getPVFile() // Pentavalente
     }
 
     public ipsCode: string
@@ -316,8 +316,8 @@ class HorisoesBot {
         if (!this.billData.success) return
         const folderId = PV_FOLDER_ID
         const { userDoc } = this.getUserDoc()
-        const searchName = `${userDoc}_PV_signed.pdf`
-        const service = 'POLIVALENTE'
+        const searchName = `${userDoc}_FA_signed.pdf`
+        const service = 'PENTAVALENTE'
 
         await this.getDriveFile(folderId, searchName, service)
     }

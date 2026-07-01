@@ -43,7 +43,7 @@ export interface BillInfoType {
 //? Bill Data
 export type BillDataType = BaseBillDataType & BillInfoType
 
-export type BillServicesType = 'FRAMINGHAM' | 'GESTION_TERRITORIAL' | 'FIEBRE_AMARILLA' | 'POLIVALENTE' | ''
+export type BillServicesType = 'FRAMINGHAM' | 'GESTION_TERRITORIAL' | 'FIEBRE_AMARILLA' | 'PENTAVALENTE' | ''
 
 export type BillFileCodesType = 'FEV' | 'XML' | 'CUV' | 'RIPS' | 'HEV'
 
