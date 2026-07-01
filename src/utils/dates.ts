@@ -17,11 +17,11 @@ export const isValidDate = (date: string) => {
     return !isNaN(Date.parse(date))
 }
 
-export function formatDate(date: Date | null, reversed?: 'REVERSED'): string {
+export function formatDate(date: Date | null, reversed?: 'REVERSED'): string {    
     if (!date) return ''
-    const day = String(date.getDate()).padStart(2, '0')
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const year = date.getFullYear()
+    const day = String(date.getUTCDate()).padStart(2, '0')    
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+    const year = date.getUTCFullYear()
     return !reversed ? `${day}-${month}-${year}` : `${year}-${month}-${day}`
 }
 

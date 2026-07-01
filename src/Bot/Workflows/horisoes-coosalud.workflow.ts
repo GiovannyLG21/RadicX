@@ -378,7 +378,7 @@ export class HorisoesCoosaludServices {
                 let rowIndex = fileCodes.findIndex(row => row[0] === code)
 
                 // Preradicado not found - insert
-                if (!rowIndex) {
+                if (rowIndex == -1) {
                     await googleapis.sheets.insertValues(EXCEL_FILE_ID, sheet, 'A:L', preRadicado)
                     fileCodes = await googleapis.sheets.getValues(EXCEL_FILE_ID, 'Radicados', 'E:E')
                     rowIndex = fileCodes.findIndex(row => row[0] === code)
