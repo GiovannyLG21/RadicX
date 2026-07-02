@@ -119,12 +119,12 @@ export const TestHorisoesCoosaludScheduler = asyncHandler(async (req, res) => {
 
     // Multiple
     // const preRadicados = await HorisoesCoosaludService.getPreRadicadosCreated()
-    const preRadicados = ['547012_20260630_232620', '546968_20260630_205118']
+    const preRadicados = ['546278_20260630_120648']
     const preRadicadosData = await EPSService.getPreRadicadosData(preRadicados)
-    if (!preRadicadosData) return res.status(500).json({ message: EPSService.message })
+    // if (!preRadicadosData) return res.status(500).json({ message: EPSService.message })
 
-    const updatePreRadicados = await HorisoesCoosaludService.updatePreRadicadosFile(preRadicadosData)
-    if (!updatePreRadicados) return res.status(500).json({ message: HorisoesCoosaludService.message })
+    // const updatePreRadicados = await HorisoesCoosaludService.updatePreRadicadosFile(preRadicadosData)
+    // if (!updatePreRadicados) return res.status(500).json({ message: HorisoesCoosaludService.message })
 
     // const createRadicadosSheet = await HorisoesCoosaludService.createRadicadosSheet(updatePreRadicados)
     // if (!createRadicadosSheet) return res.status(500).json({ message: HorisoesCoosaludService.message })

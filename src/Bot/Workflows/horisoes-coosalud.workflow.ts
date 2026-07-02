@@ -656,24 +656,32 @@ export class HorisoesCoosaludServices {
         try {
             console.log('\nProcessing files...\n')
             const sftp = await CooSaludBot.connectSftp()
-            if (!sftp) throw new Error()
+            if (!sftp) return
 
             for (const preRadicado of preRadicadosData) {
                 const radicado = preRadicado.radicado
 
-                console.log(`Downloading ${preRadicado.code} folder`)
-                const downloadSftpFolder = await CooSaludBot.getSftpFolder(sftp, preRadicado.code)
-                if (!downloadSftpFolder) continue
-                console.log(`Folder ${preRadicado.code} downloaded`)
-
-                const folderPath = path.join(process.cwd(), 'local', preRadicado.code)
-
-                // Verify existing folder
+                // Verify existing folder in drive
                 const radicadoFolderExists = await googleapis.drive.getDriveFolder(RADICADOS_FOLDER_ID, radicado)
                 if (radicadoFolderExists) {
                     console.log(`Folder ${radicado} exists in Drive... continue\n`)
                     continue
                 }
+
+                console.log(`Downloading ${preRadicado.code} folder`)
+                let downloadAttempts = 0
+                let folderDownloaded = false
+                let sftpMessage = ''
+                while (!folderDownloaded && downloadAttempts < 5) {
+                    const downloadSftpFolder = await CooSaludBot.getSftpFolder(sftp, preRadicado.code)
+                    folderDownloaded = downloadSftpFolder.success
+                    sftpMessage = downloadSftpFolder.message
+                    downloadAttempts++
+                }
+                if (!folderDownloaded) throw new Error(sftpMessage)
+                console.log(`Folder ${preRadicado.code} downloaded`)
+
+                const folderPath = path.join(process.cwd(), 'local', preRadicado.code)            
 
                 // Create folder
                 const radicadoFolder = await googleapis.drive.createDriveFolder(RADICADOS_FOLDER_ID, radicado)
@@ -735,8 +743,9 @@ export class HorisoesCoosaludServices {
                 console.log(`\nPreradicado ${preRadicado.code}/${radicado} finished\n`)
             }
 
+            await sftp.end()    
             return true
-        } catch (err) {
+        } catch (err) {            
             if (err instanceof Error) {
                 console.error(err)
                 this.success = false
