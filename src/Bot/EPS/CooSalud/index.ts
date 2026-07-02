@@ -323,7 +323,7 @@ class CooSaludBot {
             if (!this.success) return
 
             await this.page.goto('https://vco.ctamedicas.com/app/radicaciones')
-            
+
             const previousDate = new Date()
             previousDate.setMonth(previousDate.getMonth() - 1)
 
@@ -363,7 +363,7 @@ class CooSaludBot {
                     const statusCell = String(row.getCell(12).value).trim()
                     if (codes.includes(codeCell) && statusCell !== 'CREADA' && statusCell !== 'CARPETA') {
                         // Fecha radicacion column
-                        const fechaRadicacion = row.getCell(8).value as string                        
+                        const fechaRadicacion = row.getCell(8).value as string
                         if (fechaRadicacion) row.getCell(8).value = formatDate(new Date(fechaRadicacion))
 
                         const rowValues = row.values as ExcelJS.CellValue[]
@@ -393,37 +393,45 @@ class CooSaludBot {
             await this.login()
             if (!this.success) return
 
-            await this.page.goto('https://vco.ctamedicas.com/app/radicaciones')
+            let pdfFile: Response | null = null
+            let downloadAttempts = 0
+            while (!pdfFile && downloadAttempts < 5) {
+                await this.page.goto('https://vco.ctamedicas.com/app/radicaciones')
 
-            const initDate = '2026-01-01'
-            const actualDate = formatDate(new Date(), 'REVERSED')
-            //Set 'Filtro Fecha'
-            await this.page.locator('#filterBy').selectOption('radicacion.creacion_fecha')
-            // Set 'Fecha Inicio'
-            await this.page.locator('#fechaIni').fill(initDate)
-            // Set 'Fecha Fin'
-            await this.page.locator('#fechaFin').fill(actualDate)
-            // Button 'Consultar'
-            await this.page.locator('#btBolsaSearchRads').click()
-            // Table search
-            await this.page.locator('#tablaRadicaciones_filter input').fill(code)
-            //!Verificar si el radicado existe en la tabla
+                const initDate = '2026-01-01'
+                const actualDate = formatDate(new Date(), 'REVERSED')
+                //Set 'Filtro Fecha'
+                await this.page.locator('#filterBy').selectOption('radicacion.creacion_fecha')
+                // Set 'Fecha Inicio'
+                await this.page.locator('#fechaIni').fill(initDate)
+                // Set 'Fecha Fin'
+                await this.page.locator('#fechaFin').fill(actualDate)
+                // Button 'Consultar'
+                await this.page.locator('#btBolsaSearchRads').click()
+                // Table search
+                await this.page.locator('#tablaRadicaciones_filter input').fill(code)
+                //!Verificar si el radicado existe en la tabla
 
-            // Table
-            const radicadosRow = this.page.locator('#tablaRadicaciones tbody tr').first()
-            const radicadoCertificateBtn = radicadosRow.locator('td').nth(11).locator('button')
+                // Table
+                const radicadosRow = this.page.locator('#tablaRadicaciones tbody tr').first()
+                const radicadoCertificateBtn = radicadosRow.locator('td').nth(11).locator('button')
 
-            const [newPage] = await Promise.all([
-                this.context.waitForEvent('page'),
-                radicadoCertificateBtn.click()
-            ])
+                const [newPage] = await Promise.all([
+                    this.context.waitForEvent('page'),
+                    radicadoCertificateBtn.click()
+                ])
 
-            const iframeSrc = await newPage.locator('iframe').getAttribute('src')
-            const fileUrl = `https://vco.ctamedicas.com/app/${iframeSrc}`
-            const fileDownload = await fetch(fileUrl)
-            if (!fileDownload.headers.get('content-type')?.includes('application/pdf')) throw new Error('Archivo PDF corrupto')
+                const iframeSrc = await newPage.locator('iframe').getAttribute('src')
+                const fileUrl = `https://vco.ctamedicas.com/app/${iframeSrc}`
+                const fileDownload = await fetch(fileUrl)
+                if (fileDownload.headers.get('content-type')?.includes('application/pdf')) pdfFile = fileDownload
 
-            const fileBuffer = Buffer.from(await fileDownload.arrayBuffer())
+                newPage.close()
+                downloadAttempts++
+            }
+
+            if (!pdfFile) throw new Error('Archivo PDF corrupto')
+            const fileBuffer = Buffer.from(await pdfFile.arrayBuffer())
 
             return {
                 filename: `Acta Radicacion ${code}.pdf`,
@@ -445,19 +453,31 @@ class CooSaludBot {
      * @param folderName Nombre de la carpeta
      */
     static async getSftpFolder(sftp: SftpClient, folderName: string) {
-        const localPath = path.join(process.cwd(), 'local')
-        fs.mkdirSync(localPath, { recursive: true })
+        try {
+            const localPath = path.join(process.cwd(), 'local')
+            fs.mkdirSync(localPath, { recursive: true })
 
-        const folderPath = path.join(process.cwd(), 'local', folderName)
-        const actualFolder = fs.existsSync(folderPath)
-        if (actualFolder) return true
+            const existsFolder = await sftp.exists(`/${folderName}`)
+            if (!existsFolder) throw new Error('Carpeta no encontrada en sftp')
 
-        const existsFolder = await sftp.exists(`/${folderName}`)
-        if (!existsFolder) throw new Error('Carpeta no encontrada en sftp')
+            await sftp.downloadDir(`/${folderName}`, `./local/${folderName}`)
 
-        await sftp.downloadDir(`/${folderName}`, `./local/${folderName}`)
-
-        return true
+            return {
+                success: true,
+                message: 'SUCCESS'
+            }
+        } catch (err) {
+            if (err instanceof Error) {
+                return {
+                    success: false,
+                    message: `Error al obtener carpeta de sftp: ${err.message}`
+                }
+            }
+            return {
+                success: false,
+                message: 'FAILED'
+            }
+        }
     }
 }
 
