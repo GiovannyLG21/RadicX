@@ -69,23 +69,28 @@ export class HorisoesCoosaludInitiator {
      * Metodo para la **verificacion del estado de los servicios** del workflow.
      * @param {BrowserContext} context Contexto del browser      
      */
-    static async servicesHealthCheck(context: BrowserContext): Promise<{ success: boolean, message?: string }> {
+    static async servicesHealthCheck(context: BrowserContext): Promise<{ success: boolean, message: string }> {
 
         const setError = (message: string) => ({
             success: false,
             message
         })
 
-        const EPSServices = new CooSaludBot(context, await context.newPage())
+        const page = await context.newPage()
+
+        const EPSServices = new CooSaludBot(context, page)
         const EPSServicesStatus = await EPSServices.servicesStatus()
         if (!EPSServicesStatus) return setError(EPSServices.message)
 
-        const IPSServices = new HorisoesBot(context, await context.newPage(), '', '')
+        const IPSServices = new HorisoesBot(context, page, '', '')
         const IPSServicesStatus = await IPSServices.servicesStatus()
         if (!IPSServicesStatus) return setError(IPSServices.message)
 
+        await page.close()
+
         return {
-            success: true
+            success: true,
+            message: 'SUCCESS'
         }
     }
 
@@ -681,7 +686,7 @@ export class HorisoesCoosaludServices {
                 if (!folderDownloaded) throw new Error(sftpMessage)
                 console.log(`Folder ${preRadicado.code} downloaded`)
 
-                const folderPath = path.join(process.cwd(), 'local', preRadicado.code)            
+                const folderPath = path.join(process.cwd(), 'local', preRadicado.code)
 
                 // Create folder
                 const radicadoFolder = await googleapis.drive.createDriveFolder(RADICADOS_FOLDER_ID, radicado)
@@ -735,7 +740,7 @@ export class HorisoesCoosaludServices {
                 console.log('Certificate uploaded')
 
                 // Delete local radicado folder
-                fs.rmSync(folderPath, {
+                if (!TEST) fs.rmSync(folderPath, {
                     recursive: true,
                     force: true
                 })
@@ -743,9 +748,9 @@ export class HorisoesCoosaludServices {
                 console.log(`\nPreradicado ${preRadicado.code}/${radicado} finished\n`)
             }
 
-            await sftp.end()    
+            await sftp.end()
             return true
-        } catch (err) {            
+        } catch (err) {
             if (err instanceof Error) {
                 console.error(err)
                 this.success = false
