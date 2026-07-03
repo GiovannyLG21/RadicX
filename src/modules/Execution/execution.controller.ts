@@ -47,8 +47,15 @@ export const getExecution = asyncHandler(async (req, res) => {
  */
 export const Test = asyncHandler(async (req, res) => {
 
+    const ipsCode = '901749264'
+    const epsCode = 'EPS042'
+
+    const data = await executionService.getLastExecutions(ipsCode, epsCode)
+
     return res.json({
         message: 'Executed',
+        length: data.length,
+        data,
         status: 200
     })
 })
@@ -313,7 +320,7 @@ export const HorisoesCoosaludSchedulerEx = asyncHandler(async (req, res) => {
         'check-preradicados-job',
         {},
         {
-            jobId: `horisoes_coosalud_manual_repeteable_job_${crypto.randomInt(1000000000000, 9999999999999)}` ,
+            jobId: `horisoes_coosalud_manual_repeteable_job_${crypto.randomInt(1000000000000, 9999999999999)}`,
             attempts: 5,
             backoff: {
                 type: 'exponential',

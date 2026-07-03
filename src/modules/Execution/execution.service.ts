@@ -96,10 +96,16 @@ export async function getExecutions(ipsCode: string, epsCode: string, cant?: num
  * @param cant Cantidad de ejecuciones a obtener (opcional, **por defecto 100**).
  */
 export async function getLastExecutions(ipsCode: string, epsCode: string, cant?: number) {
+    const weekDate = new Date()
+    weekDate.setDate(weekDate.getDate() - 7)
+    
     return await prisma.executions.findMany({
         where: {
             epsCode,
-            ipsCode
+            ipsCode,
+            started_at: {
+                gte: weekDate
+            }
         },
         orderBy: {
             started_at: 'desc'

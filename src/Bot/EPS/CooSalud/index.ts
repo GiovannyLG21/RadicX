@@ -8,6 +8,7 @@ import { delay, formatError, LoginPage } from '@/Bot/utils'
 import { BillDataType, ExcelRowData, LoginDataType, RadicacionCodesType } from '@/Bot/types'
 import path from 'path'
 import { formatDate } from '@/utils/dates'
+import { NODE_ENV } from '@/config/env'
 
 /**
  * @class **Clase Bot perteneciente a la EPS 'CooSalud'.**  
@@ -456,6 +457,12 @@ class CooSaludBot {
         try {
             const localPath = path.join(process.cwd(), 'local')
             fs.mkdirSync(localPath, { recursive: true })
+
+            const existsLocalFolder = fs.existsSync(`${localPath}/${folderName}`)
+            if (existsLocalFolder && NODE_ENV == 'development') return {
+                success: true,
+                message: 'SUCCESS'
+            }
 
             const existsFolder = await sftp.exists(`/${folderName}`)
             if (!existsFolder) throw new Error('Carpeta no encontrada en sftp')

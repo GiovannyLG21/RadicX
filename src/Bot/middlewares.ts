@@ -1,5 +1,4 @@
 import { NextFunction, Request, Response } from 'express'
-import { NODE_ENV } from '@/config/env'
 import { getFileType } from '@/utils/string'
 
 //* HorisoesCoosalud
@@ -28,8 +27,8 @@ export const validateBillsFile = (req: Request, res: Response, next: NextFunctio
         .map(bill => bill.trim())
         .filter(bill => Boolean(bill) && bill.length <= 10)
 
-    if (bills.length < 100 && NODE_ENV !== 'development') return res.status(400).json({
-        message: 'El archivo debe tener minimo 100 facturas.',
+    if (bills.length < 1) return res.status(400).json({
+        message: 'El archivo debe contener al menos una factura.',
         status: 400
     })
 
