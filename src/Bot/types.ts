@@ -30,6 +30,7 @@ export type BillStatusType =
     | 'CREATE_RADICACION_FAILED'
     | 'GET_RADICACION_FAILED'
     | 'SFTP_ERROR'
+    | 'GOOGLE_DRIVE_ERROR'
     | 'ERROR'
     | 'SUCCESS'
     | null

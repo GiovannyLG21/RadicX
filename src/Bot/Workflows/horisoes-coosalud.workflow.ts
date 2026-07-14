@@ -117,11 +117,14 @@ export class HorisoesCoosaludInitiator {
      * Estos son pasados como parametro a cada Job.     
      */
     private async createRadicados(context: BrowserContext) {
+
         if (TEST) {
             const radicacionCodes: RadicacionCodesType = [
                 { code: '525921_20260602_193846', contract: 'Contributivo' },
                 { code: '525920_20260602_193844', contract: 'Subsidiado' }
             ]
+            // Create drive folders
+            for (const { code } of radicacionCodes) await googleapis.drive.createDriveFolder(RADICADOS_FOLDER_ID, code)
             return radicacionCodes
         }
 
@@ -133,6 +136,9 @@ export class HorisoesCoosaludInitiator {
             this.message = EPSBot.message
             return
         }
+
+        // Create drive folders
+        for (const { code } of radicacionCodes) await googleapis.drive.createDriveFolder(RADICADOS_FOLDER_ID, code)
 
         return radicacionCodes
     }
@@ -280,6 +286,9 @@ export class HorisoesCoosaludWorkflow {
         // Upload bill
         if (!TEST) await this.EPSBot.uploadBill(billData)
 
+        // Upload bill to google drive
+        await HorisoesCoosaludServices.uploadDriveBill(billData)
+
         this.billData = billData
         return billData
     }
@@ -324,7 +333,7 @@ export class HorisoesCoosaludServices {
     * Metodo para obtener todos los preradicados creados en la plataforma de la EPS.
     */
     async getPreRadicadosCreated() {
-        const executions = await executionService.getExecutions(this.ipsCode, this.epsCode)
+        const executions = await executionService.getLastExecutions(this.ipsCode, this.epsCode)
         return [...new Set(
             executions.map(execution => {
                 const metadata = execution.metadata as unknown as HorisoesCoosaludMetadataType
@@ -368,6 +377,8 @@ export class HorisoesCoosaludServices {
 
     /**
      * Metodo para actualizar el archivo excel (archivo de seguimiento en drive) insertando informacion nueva de los preradicados.
+     * 
+     * **Nota:** Este metodo tambien elimina la carpeta de Google Drive de un preradicado si esta devolvio error.
      * @param data Valores de filas excel con los datos de cada preradicado
      */
     async updatePreRadicadosFile(data: ExcelRowData[]) {
@@ -402,6 +413,9 @@ export class HorisoesCoosaludServices {
                         endRow: rowIndex + 1
                     }
                     await googleapis.sheets.styles.changeCellBgColor(EXCEL_FILE_ID, sheet, range, '255, 0, 0')
+                    // Delete Google Drive folder
+                    const preRadicadoFolder = (await googleapis.drive.getDriveFolder(RADICADOS_FOLDER_ID, code))?.id
+                    if (preRadicadoFolder) await googleapis.drive.trashDriveFolder(preRadicadoFolder)
                     continue
                 }
 
@@ -490,7 +504,6 @@ export class HorisoesCoosaludServices {
         }
     }
 
-    //! Pendiente crear metodos de diseño en googleapis    
     /**
      * Metodo para aplicar el formato a una hoja de radicados (Consolidado).
      * @param sheetId Id de la hoja del archivo     
@@ -657,7 +670,47 @@ export class HorisoesCoosaludServices {
     /**
      * Metodo para actualizar la carpeta alojada en Google Drive, que contiene los radicados con sus respectivas facturas.     
      */
-    async updateRadicadosFolder(context: BrowserContext, page: Page, preRadicadosData: { date: string, code: string, radicado: string }[]) {
+    async updateRadicadosFolder(context: BrowserContext, page: Page, updatePreradicados: { date: string, code: string, radicado: string }[]) {
+        try {
+            console.log('\nUpdating radicados folder...\n')
+            for (const preRadicado of updatePreradicados) {
+                const preRadicadoFolder = (await googleapis.drive.getDriveFolder(RADICADOS_FOLDER_ID, preRadicado.code))?.id
+                if (!preRadicadoFolder) continue
+
+                await googleapis.drive.changeFolderName(preRadicadoFolder, preRadicado.radicado)
+                console.log(`Folder ${preRadicado.code} updated to ${preRadicado.radicado} successfully.`)
+
+                //* Certificate
+                const EPSService = this.EPSServices(context, page)
+                console.log('---')
+                console.log('Downloading certificate')
+                const radicadoCertificate = await EPSService.getRadicadoCertificate(preRadicado.radicado)
+                if (!radicadoCertificate) throw new Error(EPSService.message)
+
+                // Upload certificate
+                const uploadCertificate = await googleapis.drive.uploadDriveFile(
+                    preRadicadoFolder,
+                    radicadoCertificate.filename,
+                    radicadoCertificate.buffer
+                )
+                if (!uploadCertificate) throw new Error()
+                console.log('Certificate uploaded')
+
+                console.log(`Preradicado ${preRadicado.code}/${preRadicado.radicado} finished\n`)
+            }
+
+            return true
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err)
+                this.success = false
+                this.message = `Error al actualizar carpeta radicados: ${err.message}`
+            }
+            return false
+        }
+    }
+
+    async updateRadicadosFolderOld(context: BrowserContext, page: Page, preRadicadosData: { date: string, code: string, radicado: string }[]) {
         try {
             console.log('\nProcessing files...\n')
             const sftp = await CooSaludBot.connectSftp()
@@ -757,6 +810,45 @@ export class HorisoesCoosaludServices {
                 this.message = `Error al actualizar carpeta radicados: ${err.message}`
             }
             return false
+        }
+    }
+
+    /**
+     * Metodo para el **cargue de una factura a Google Drive**.
+     * @param {BillDataType} billData Objeto con los datos de la factura
+     */
+    static async uploadDriveBill(billData: BillDataType) {
+        try {
+            const preRadicado = billData.radicado
+            if (!preRadicado) throw new Error('No se encontro el preradicado de la factura')
+
+            // Find folder
+            let preRadicadoFolder = (await googleapis.drive.getDriveFolder(RADICADOS_FOLDER_ID, preRadicado))?.id
+
+            if (!preRadicadoFolder) {
+                // Create folder
+                const newFolder = await googleapis.drive.createDriveFolder(RADICADOS_FOLDER_ID, preRadicado)
+                if (!newFolder) throw new Error
+                preRadicadoFolder = newFolder
+            }
+
+            // Create bill folder
+            const billFolder = await googleapis.drive.createDriveFolder(preRadicadoFolder, billData.bill)
+            if (!billFolder) throw new Error
+
+            // Upload files
+            for (const file of billData.files) await googleapis.drive.uploadDriveFile(billFolder, file.name, file.buffer)
+
+            billData.message = 'Factura, RIPS & HEV cargados en SFTP y Google Drive'
+            return billData
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err)
+                billData.success = false
+                billData.status = 'GOOGLE_DRIVE_ERROR'
+                billData.message = `Error al cargar archivos en Google Drive: ${err.message}`
+            }
+            return billData
         }
     }
 }

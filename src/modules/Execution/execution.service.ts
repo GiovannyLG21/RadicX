@@ -97,7 +97,7 @@ export async function getExecutions(ipsCode: string, epsCode: string, cant?: num
  */
 export async function getLastExecutions(ipsCode: string, epsCode: string, cant?: number) {
     const weekDate = new Date()
-    weekDate.setDate(weekDate.getDate() - 7)
+    weekDate.setDate(weekDate.getDate() - 8)
     
     return await prisma.executions.findMany({
         where: {

@@ -158,9 +158,42 @@ export const googleapis = {
                     parents: [parentId]
                 },
                 fields: 'id, name',
-                supportsAllDrives: true                
+                supportsAllDrives: true
             })
             return res.data.id
+        },
+
+        /**
+         * Metodo para **cambiar el nombre de una carpeta** de Google Drive.
+         * @param {string} folderId Id de la carpeta
+         * @param {string} folderName Nombre de la carpeta
+         */
+        async changeFolderName(folderId: string, folderName: string) {
+            const res = await drive.files.update({
+                fileId: folderId,
+                requestBody: {
+                    name: folderName
+                },
+                fields: 'id, name',
+                supportsAllDrives: true,
+            })
+
+            return res.data
+        },
+
+        /**
+        * Metodo para **mover a la papelera una carpeta** de Google Drive.
+        * @param {string} folderId Id de la carpeta         
+        */
+        async trashDriveFolder(folderId: string) {
+            await drive.files.update({
+                fileId: folderId,
+                supportsAllDrives: true,
+                requestBody: {
+                    trashed: true
+                }
+            })
+            return true
         },
 
         /**
@@ -180,7 +213,7 @@ export const googleapis = {
                     body: Readable.from(buffer)
                 },
                 fields: 'id, name',
-                supportsAllDrives: true                
+                supportsAllDrives: true
             })
             return res.data.id
         },
