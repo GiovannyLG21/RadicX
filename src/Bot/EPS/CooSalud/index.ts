@@ -5,7 +5,7 @@ import SftpClient from 'ssh2-sftp-client'
 import ExcelJS from 'exceljs'
 import { CONTRACTS, CREDENTIALS, SFTP_CONNECTION } from './config/config'
 import { delay, formatError, LoginPage } from '@/Bot/utils'
-import { BillDataType, ExcelRowData, LoginDataType, RadicacionCodesType } from '@/Bot/types'
+import { BillDataType, BillServicesType, ExcelRowData, LoginDataType, RadicacionCodesType } from '@/Bot/types'
 import path from 'path'
 import { formatDate } from '@/utils/dates'
 import { NODE_ENV } from '@/config/env'
@@ -246,7 +246,7 @@ class CooSaludBot {
      * @param {string} code Codigo del preradicado
      * @param {number} billsNum Cantidad de facturas del preradicado 
      */
-    async getPreRadicadoData(code: string, billsNum?: number): Promise<ExcelRowData | undefined> {
+    async getPreRadicadoData(code: string, service: string | BillServicesType, billsNum?: number): Promise<ExcelRowData | undefined> {
         try {
             await this.login()
             if (!this.success) return
@@ -293,6 +293,8 @@ class CooSaludBot {
                         if (fechaRadicacion) row.getCell(8).value = formatDate(new Date(fechaRadicacion))
                         // Cantidad facturas column
                         if (billsNum) row.getCell(9).value = billsNum
+                        // Servicio column
+                        row.getCell(13).value = service
 
                         data = worksheet?.getRow(rowNumber).values as ExcelRowData
                     }
@@ -302,7 +304,7 @@ class CooSaludBot {
             }
             if (!data.length) throw new Error(`No se encontro el pre-radicado ${code}`)
 
-            return data.slice(1, 13)
+            return data.slice(1, 14)
         } catch (err) {
             if (err instanceof Error) {
                 console.error(err)

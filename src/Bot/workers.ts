@@ -56,7 +56,7 @@ async function HorisoesCoosaludFlowWorker() {
             // Const
             const HorisoesCoosaludService = new HorisoesCoosaludServices()
             const EPSService = HorisoesCoosaludService.EPSServices(context, page)
-            const { executionId, radicacionCodes }: { executionId: string, radicacionCodes: RadicacionCodesType } = job.data
+            const { executionId, radicacionCodes, service }: { executionId: string, radicacionCodes: RadicacionCodesType, service: string } = job.data
             const { processed, ignored } = await job.getDependencies()
 
             if (!executionId) return
@@ -72,9 +72,8 @@ async function HorisoesCoosaludFlowWorker() {
             // Get preradicado bills & update excel file (with preradicado info).
             const preRadicados = []
             for (const preRadicado of radicacionCodes) {
-                const preRadicadoBills = successBills.filter(bill => bill.radicado == preRadicado.code)
-                //! Pendiente manejo de errores
-                const preRadicadoData = await EPSService.getPreRadicadoData(preRadicado.code, preRadicadoBills.length)
+                const preRadicadoBills = successBills.filter(bill => bill.radicado == preRadicado.code)                
+                const preRadicadoData = await EPSService.getPreRadicadoData(preRadicado.code, service, preRadicadoBills.length)
                 if (preRadicadoData) await HorisoesCoosaludService.insertPreRadicadoData(preRadicadoData)
 
                 preRadicados.push({
@@ -259,7 +258,7 @@ async function HorisoesCoosaludSchedulerWorker() {
                     status: taskStatusType
                     data: taskDataType
                 }
-                uploadRadicadoFiles: {
+                updateRadicadosFolder: {
                     status: taskStatusType
                     data: taskDataType
                 }
@@ -277,7 +276,7 @@ async function HorisoesCoosaludSchedulerWorker() {
                     status: 'WAITING',
                     data: null
                 },
-                uploadRadicadoFiles: {
+                updateRadicadosFolder: {
                     status: 'WAITING',
                     data: null
                 }
@@ -329,18 +328,15 @@ async function HorisoesCoosaludSchedulerWorker() {
             await job.updateProgress(jobProgress)
             console.log('Radicados sheet created ✓')
 
-            //* uploadRadicadoFiles
-            jobProgress.uploadRadicadoFiles.status = 'IN PROCESS'
+            //* updateRadicadosFolder
+            jobProgress.updateRadicadosFolder.status = 'IN PROCESS'
             await job.updateProgress(jobProgress)
-            await job.updateData({
-                ...job.data,
-                progress: jobProgress
-            })
             const uploadRadicadoFiles = await HorisoesCoosaludService.updateRadicadosFolder(context, page, updatePreRadicados)
             if (!uploadRadicadoFiles) return await setFail(HorisoesCoosaludService.message)
-            jobProgress.uploadRadicadoFiles.status = 'COMPLETED'
-            jobProgress.uploadRadicadoFiles.data = uploadRadicadoFiles
-            console.log('\nRadicados files uploaded ✓')
+            jobProgress.updateRadicadosFolder.status = 'COMPLETED'
+            jobProgress.updateRadicadosFolder.data = uploadRadicadoFiles
+            await job.updateProgress(jobProgress)
+            console.log('\nRadicados folder uploaded ✓')
 
             await context.close()
 
