@@ -54,6 +54,18 @@ export async function createExecution(data: CreateExecutionDataType) {
     })
 }
 
+export async function updateExecutionMetadata(id: string | undefined, metadata: object) {
+    if (!id) return
+    return await prisma.executions.update({
+        where: {
+            id
+        },
+        data: {
+            metadata
+        }
+    })
+}
+
 export async function finishExecution(id: string | undefined, data: FinishExecutionDataType) {
     if (!id) return
     const { metadata } = data
@@ -90,15 +102,15 @@ export async function getExecutions(ipsCode: string, epsCode: string, cant?: num
 }
 
 /**
- * Servicio para obtener las ejecuciones **con cualquier estado** del bot de determinada **IPS** y **EPS**.
+ * Servicio para obtener las ejecuciones de los ultimos 14 dias (en orden descendente) **con cualquier estado** del bot de determinada **IPS** y **EPS**.
  * @param ipsCode Codigo de la IPS
  * @param epsCode Codigo de la EPS
  * @param cant Cantidad de ejecuciones a obtener (opcional, **por defecto 100**).
  */
 export async function getLastExecutions(ipsCode: string, epsCode: string, cant?: number) {
     const weekDate = new Date()
-    weekDate.setDate(weekDate.getDate() - 8)
-    
+    weekDate.setDate(weekDate.getDate() - 14)
+
     return await prisma.executions.findMany({
         where: {
             epsCode,

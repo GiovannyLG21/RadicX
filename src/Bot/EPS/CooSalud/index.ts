@@ -5,7 +5,7 @@ import SftpClient from 'ssh2-sftp-client'
 import ExcelJS from 'exceljs'
 import { CONTRACTS, CREDENTIALS, SFTP_CONNECTION } from './config/config'
 import { delay, formatError, LoginPage } from '@/Bot/utils'
-import { BillDataType, BillServicesType, ExcelRowData, LoginDataType, RadicacionCodesType } from '@/Bot/types'
+import { BillDataType, BillServicesType, ExcelRowData, LoginDataType, PreRadicadosCreatedType, RadicacionCodesType } from '@/Bot/types'
 import path from 'path'
 import { formatDate } from '@/utils/dates'
 import { NODE_ENV } from '@/config/env'
@@ -94,7 +94,7 @@ class CooSaludBot {
         }
     }
 
-    private async login() {
+    public async login() {
         try {
             await this.page.goto('https://vco.ctamedicas.com/app/')
             const login = await this.loginPage.run()
@@ -320,7 +320,7 @@ class CooSaludBot {
      * descargando el archivo excel de la plataforma.
      * @param {string} codes Lista de preradicados a buscar.
      */
-    async getPreRadicadosData(codes: string[]) {
+    async getPreRadicadosData(preRadicados: PreRadicadosCreatedType) {
         try {
             await this.login()
             if (!this.success) return
@@ -364,7 +364,8 @@ class CooSaludBot {
                 worksheet?.eachRow((row) => {
                     const codeCell = String(row.getCell(5).value).trim()
                     const statusCell = String(row.getCell(12).value).trim()
-                    if (codes.includes(codeCell) && statusCell !== 'CREADA' && statusCell !== 'CARPETA') {
+                    const existingCode = preRadicados.find(pre_radicado => pre_radicado.code === codeCell)
+                    if (existingCode && statusCell !== 'CREADA' && statusCell !== 'CARPETA') {
                         // Fecha radicacion column
                         const fechaRadicacion = row.getCell(8).value as string
                         if (fechaRadicacion) row.getCell(8).value = formatDate(new Date(fechaRadicacion))

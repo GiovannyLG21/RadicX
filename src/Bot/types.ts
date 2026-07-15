@@ -90,9 +90,15 @@ export interface HorisoesCoosaludMetadataType {
         contrato: string;
         facturas: string[];
         cantidad_facturas: number;
+        radicado: boolean;
     }[];
     fallidas: {
         codigos: string[];
         facturas: ProcessedBillType[]
     }
 }
+
+export type PreRadicadosCreatedType = {
+    executionId: string
+    code: string
+}[]
