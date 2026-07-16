@@ -325,6 +325,21 @@ export const googleapis = {
             })
         },
 
+        /**
+         * Metodo para actualizar multiples filas en la hoja de determinado archivo de google sheets.
+         * @param {string} spreadsheetId Id del archivo google sheets
+         * @param data Datos de las filas a actualizar
+         */
+        async updateRows(spreadsheetId: string, data: { range: string, values: unknown[][] }[]) {
+            await sheets.spreadsheets.values.batchUpdate({
+                spreadsheetId,                
+                requestBody: {
+                    valueInputOption: 'USER_ENTERED',
+                    data
+                }
+            })
+        },
+
         styles: {
 
             /**

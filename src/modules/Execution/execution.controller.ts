@@ -2,12 +2,13 @@ import fs from 'fs'
 import crypto from 'crypto'
 import { asyncHandler } from '@/middlewares'
 import { execPlaywright, newContext } from '@/Bot/config/browser'
-import { getDateTime } from '@/utils/dates'
+import { formatDate, getDateTime } from '@/utils/dates'
 import { ExecutionDataType } from './execution.types'
 import { HorisoesCoosaludMetadataType } from '@/Bot/types'
 import * as executionService from './execution.service'
 import { HorisoesCoosaludServices } from '@/Bot/Workflows/horisoes-coosalud.workflow'
 import { HorisoesCoosaludScheduler } from '@/Bot/config/queues'
+import CooSaludBot from '@/Bot/EPS/CooSalud'
 
 //* Main
 export const executions = asyncHandler(async (_req, res) => {
@@ -119,15 +120,14 @@ export const TestHorisoesCoosaludScheduler = asyncHandler(async (req, res) => {
     const EPSService = HorisoesCoosaludService.EPSServices(context, page)
 
     // Single
-    // const preRadicado = '525920_20260602_193844'
-    // const preRadicadoData = await EPSService.getPreRadicadoData(preRadicado)
-    // if (!preRadicadoData) throw new Error('')
-
+    const preRadicado = '560355_20260715_201447'
+    const preRadicadoData = await EPSService.getPreRadicadoData(preRadicado, 'PENTAVALENTE', 2)
+    if (!preRadicadoData) throw new Error('')
+    await HorisoesCoosaludService.insertPreRadicadoData(preRadicadoData)
 
     // Multiple
-    // const preRadicados = await HorisoesCoosaludService.getPreRadicadosCreated()
-    const preRadicados = ['546278_20260630_120648']
-    const preRadicadosData = await EPSService.getPreRadicadosData(preRadicados)
+    // const preRadicados = await HorisoesCoosaludService.getPreRadicadosCreated()    
+    // const preRadicadosData = await EPSService.getPreRadicadosData(preRadicados)
     // if (!preRadicadosData) return res.status(500).json({ message: EPSService.message })
 
     // const updatePreRadicados = await HorisoesCoosaludService.updatePreRadicadosFile(preRadicadosData)
@@ -139,9 +139,11 @@ export const TestHorisoesCoosaludScheduler = asyncHandler(async (req, res) => {
     // const uploadRadicadoFiles = await HorisoesCoosaludService.updateRadicadosFolder(context, page, updatePreRadicados)
     // if (!uploadRadicadoFiles) return res.status(500).json({ message: HorisoesCoosaludService.message })
 
+    await browser.close()
+
     return res.json({
         message: 'Executed',
-        data: preRadicadosData,
+        data: preRadicadoData,
         status: 200
     })
 })
@@ -333,6 +335,61 @@ export const HorisoesCoosaludSchedulerEx = asyncHandler(async (req, res) => {
 
     return res.json({
         message: 'Horisoes-Coosalud Scheduler added.',
+        status: 200
+    })
+})
+
+export const HorisoesCoosaludUpdateRads = asyncHandler(async (req, res) => {
+    const browser = await execPlaywright()
+    const context = await newContext(browser)
+    const page = await context.newPage()
+
+    const login = await new CooSaludBot(context, page).login()
+    if (!login) return res.status(500).json({
+        error: 'Login error',
+        status: 500
+    })
+
+    const ipsCode = '901749264'
+    const epsCode = 'EPS042'
+    const executions = await executionService.getExecutions(ipsCode, epsCode, 120)
+
+    // Navigation
+    await page.goto('https://vco.ctamedicas.com/app/radicaciones')
+
+    const initDate = '2026-01-01'
+    const actualDate = formatDate(new Date(), 'REVERSED')
+    //Set 'Filtro Fecha'
+    await page.locator('#filterBy').selectOption('radicacion.creacion_fecha')
+    // Set 'Fecha Inicio'
+    await page.locator('#fechaIni').fill(initDate)
+    // Set 'Fecha Fin'
+    await page.locator('#fechaFin').fill(actualDate)
+    // Button 'Consultar'
+    await page.locator('#btBolsaSearchRads').click()
+    // Table search
+    const tableSearchInput = page.locator('#tablaRadicaciones_filter input')
+
+    // Search
+    for (const execution of executions) {
+        const metadata = execution.metadata as unknown as HorisoesCoosaludMetadataType
+        for (const preRadicado of metadata.pre_radicados) {
+            await tableSearchInput.fill('')
+            await tableSearchInput.fill(preRadicado.codigo)
+            const searchRow = page.locator('#tablaRadicaciones tbody tr').first()
+            const statusColumn = await searchRow.locator('td').nth(10).textContent()
+            console.log(`${preRadicado.codigo} - ${statusColumn}`)
+
+            preRadicado.radicado = statusColumn !== null && statusColumn === 'RADICADA'
+        }
+        await executionService.updateExecutionMetadata(execution.id, metadata)
+    }
+
+    await browser.close()
+
+    return res.json({
+        message: 'Estado de preradicados existentes actualizado',
+        data: executions,
         status: 200
     })
 })

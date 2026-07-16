@@ -27,6 +27,9 @@ router.get('/horisoes/coosalud/health',
 router.get('/horisoes/coosalud/scheduler',
     executionController.HorisoesCoosaludSchedulerEx)
 
+router.get('/horisoes/coosalud/update_rads', 
+    executionController.HorisoesCoosaludUpdateRads)
+
 router.post('/horisoes/coosalud/execute',
     upload.single('bills'),
     validateScheme(HorisoesCoosaludScheme),

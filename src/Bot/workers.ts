@@ -6,7 +6,7 @@ import { execPlaywright, newContext } from './config/browser'
 import { HorisoesCoosaludWorkflow } from './Workflows/horisoes-coosalud.workflow'
 import { REDIS_HOST, REDIS_PASSWORD } from '@/config/env'
 import { getDataFromEntries } from '@/utils/objects'
-import { JobDataType, ProcessedBillType, RadicacionCodesType } from './types'
+import { HorisoesCoosaludMetadataType, JobDataType, PreRadicadosCreatedType, ProcessedBillType, RadicacionCodesType } from './types'
 import * as executionService from '@/modules/Execution/execution.service'
 import { formatDate } from '@/utils/dates'
 
@@ -80,12 +80,13 @@ async function HorisoesCoosaludFlowWorker() {
                     codigo: preRadicado.code,
                     contrato: preRadicado.contract,
                     facturas: preRadicadoBills.map(bill => bill.bill),
-                    cantidad_facturas: preRadicadoBills.length
+                    cantidad_facturas: preRadicadoBills.length,
+                    radicado: false
                 })
             }
 
             // Create metadata
-            const metadata = {
+            const metadata: HorisoesCoosaludMetadataType = {
                 total_facturas: successLen + failedLen,
                 total_radicadas: successLen,
                 total_fallidas: failedLen,
@@ -245,7 +246,7 @@ async function HorisoesCoosaludSchedulerWorker() {
             type taskStatusType = 'WAITING' | 'IN PROCESS' | 'COMPLETED'
             type taskDataType = unknown | null
             const jobProgress: {
-                preRadicados: string[] | null
+                preRadicados: PreRadicadosCreatedType | null
                 preRadicadosData: {
                     status: taskStatusType
                     data: taskDataType
@@ -311,7 +312,7 @@ async function HorisoesCoosaludSchedulerWorker() {
             //* updatePreRadicadosFile
             jobProgress.updatePreRadicados.status = 'IN PROCESS'
             await job.updateProgress(jobProgress)
-            const updatePreRadicados = await HorisoesCoosaludService.updatePreRadicadosFile(preRadicadosData)
+            const updatePreRadicados = await HorisoesCoosaludService.updatePreRadicadosFile(preRadicados, preRadicadosData)
             if (!updatePreRadicados) return await setFail(HorisoesCoosaludService.message)
             jobProgress.updatePreRadicados.status = 'COMPLETED'
             jobProgress.updatePreRadicados.data = updatePreRadicados

@@ -27,27 +27,9 @@ export const HorisoesCoosaludScheduler = new Queue('horisoes_coosalud_scheduler'
 })
 async function setHorisoesCoosaludScheduler() {
     await HorisoesCoosaludScheduler.upsertJobScheduler(
-        'horisoes_coosalud_friday_repeteable_job',
+        'horisoes_coosalud_repeteable_job',
         {
-            pattern:  '0 0 6 * * 5', // Viernes de cada semana a las 6am.
-        },
-        {
-            name: 'check-preradicados-job',            
-            opts: {                
-                attempts: 5,
-                backoff: {
-                    type: 'exponential',
-                    delay: 3000
-                },
-                removeOnComplete: false,
-                removeOnFail: false
-            }
-        }
-    )
-    await HorisoesCoosaludScheduler.upsertJobScheduler(
-        'horisoes_coosalud_lastMonthDay_repeteable_job',
-        {
-            pattern:  '0 0 18 L * *', // Ultimo dia de cada mes a las 6pm (18:00).
+            pattern:  '0 0 6 * * *', // Diario a las 6am.
         },
         {
             name: 'check-preradicados-job',            
