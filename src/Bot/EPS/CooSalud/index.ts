@@ -413,8 +413,7 @@ class CooSaludBot {
                 // Button 'Consultar'
                 await this.page.locator('#btBolsaSearchRads').click()
                 // Table search
-                await this.page.locator('#tablaRadicaciones_filter input').fill(code)
-                //!Verificar si el radicado existe en la tabla
+                await this.page.locator('#tablaRadicaciones_filter input').fill(code)                
 
                 // Table
                 const radicadosRow = this.page.locator('#tablaRadicaciones tbody tr').first()

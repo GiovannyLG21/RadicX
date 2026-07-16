@@ -117,14 +117,13 @@ export const TestHorisoesCoosaludScheduler = asyncHandler(async (req, res) => {
     const page = await context.newPage()
 
     const HorisoesCoosaludService = new HorisoesCoosaludServices()
-    // eslint-disable-next-line
     const EPSService = HorisoesCoosaludService.EPSServices(context, page)
 
     // Single
-    // const preRadicado = '525920_20260602_193844'
-    // const preRadicadoData = await EPSService.getPreRadicadoData(preRadicado)
-    // if (!preRadicadoData) throw new Error('')
-
+    const preRadicado = '560355_20260715_201447'
+    const preRadicadoData = await EPSService.getPreRadicadoData(preRadicado, 'PENTAVALENTE', 2)
+    if (!preRadicadoData) throw new Error('')
+    await HorisoesCoosaludService.insertPreRadicadoData(preRadicadoData)
 
     // Multiple
     // const preRadicados = await HorisoesCoosaludService.getPreRadicadosCreated()    
@@ -140,8 +139,11 @@ export const TestHorisoesCoosaludScheduler = asyncHandler(async (req, res) => {
     // const uploadRadicadoFiles = await HorisoesCoosaludService.updateRadicadosFolder(context, page, updatePreRadicados)
     // if (!uploadRadicadoFiles) return res.status(500).json({ message: HorisoesCoosaludService.message })
 
+    await browser.close()
+
     return res.json({
         message: 'Executed',
+        data: preRadicadoData,
         status: 200
     })
 })
@@ -377,13 +379,14 @@ export const HorisoesCoosaludUpdateRads = asyncHandler(async (req, res) => {
             const searchRow = page.locator('#tablaRadicaciones tbody tr').first()
             const statusColumn = await searchRow.locator('td').nth(10).textContent()
             console.log(`${preRadicado.codigo} - ${statusColumn}`)
-            preRadicado.radicado = statusColumn !== null && statusColumn === 'RADICADO'
+
+            preRadicado.radicado = statusColumn !== null && statusColumn === 'RADICADA'
         }
         await executionService.updateExecutionMetadata(execution.id, metadata)
     }
 
     await browser.close()
-    
+
     return res.json({
         message: 'Estado de preradicados existentes actualizado',
         data: executions,

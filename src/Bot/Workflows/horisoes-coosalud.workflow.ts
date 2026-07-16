@@ -409,6 +409,8 @@ export class HorisoesCoosaludServices {
                 const executionId = preRadicados.find(pre_radicado => pre_radicado.code === code)?.executionId
                 let rowIndex = fileCodes.findIndex(row => row[0] === code)
 
+                if(rowIndex == -1 && !radicado) continue
+
                 // Preradicado not found - insert
                 if (rowIndex == -1) {
                     await googleapis.sheets.insertValues(EXCEL_FILE_ID, sheet, 'A:L', preRadicado)
@@ -696,7 +698,6 @@ export class HorisoesCoosaludServices {
                 }]
             }
         })
-
     }
 
     /**
@@ -851,8 +852,8 @@ export class HorisoesCoosaludServices {
      */
     static async uploadDriveBill(billData: BillDataType) {
         try {
-            const preRadicado = billData.radicado
-            if (!preRadicado) throw new Error('No se encontro el preradicado de la factura')
+            if (!billData.success || !billData.radicado) return billData
+            const preRadicado = billData.radicado            
 
             // Find folder
             let preRadicadoFolder = (await googleapis.drive.getDriveFolder(RADICADOS_FOLDER_ID, preRadicado))?.id
