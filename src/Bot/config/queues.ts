@@ -29,7 +29,7 @@ async function setHorisoesCoosaludScheduler() {
     await HorisoesCoosaludScheduler.upsertJobScheduler(
         'horisoes_coosalud_repeteable_job',
         {
-            pattern:  '0 0 6 * * *', // Diario a las 6am.
+            pattern:  '0 0 11 * * *', // Diario a las 6am.
         },
         {
             name: 'check-preradicados-job',            
