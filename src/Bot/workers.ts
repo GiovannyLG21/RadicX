@@ -9,6 +9,7 @@ import { getDataFromEntries } from '@/utils/objects'
 import { HorisoesCoosaludMetadataType, JobDataType, PreRadicadosCreatedType, ProcessedBillType, RadicacionCodesType } from './types'
 import * as executionService from '@/modules/Execution/execution.service'
 import { formatDate } from '@/utils/dates'
+import { googleapis } from './utils'
 
 console.log('\nWorkers running!')
 console.log('==================================================')
@@ -285,7 +286,24 @@ async function HorisoesCoosaludSchedulerWorker() {
             await job.updateProgress(jobProgress)
 
             //* Services Health
-            const servicesStatus = await HorisoesCoosaludService.servicesHealthCheck(context)
+            const checkServicesHealth = async () => {
+                const setFail = (message: string) => ({ 
+                    success: false,
+                    message: `Fallo al inicializar los servicios: ${message}`
+                })
+
+                const CoosaludStatus = await EPSService.login()
+                if (!CoosaludStatus) return setFail(EPSService.message)
+
+                const GoogleApisStatus = await googleapis.servicesHealthCheck()
+                if (!GoogleApisStatus.online) return setFail(GoogleApisStatus.error)
+
+                return {
+                    success: true,
+                    message: 'Services Online'
+                }
+            }
+            const servicesStatus = await checkServicesHealth()
             if (!servicesStatus.success) return await setFail(servicesStatus.message)
 
             //* Preradicados

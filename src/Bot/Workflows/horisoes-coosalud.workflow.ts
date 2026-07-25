@@ -9,7 +9,7 @@ import { sheets } from '../config/googleapis'
 import { HorisoesCoosaludFlow } from '../config/flows'
 import { HorisoesCoosaludQueue } from '../config/queues'
 import { CreateExecutionReturnType } from '@/modules/Execution/execution.types'
-import { googleapis } from '@/Bot/utils'
+import { delay, googleapis } from '@/Bot/utils'
 import { getFileType } from '@/utils/string'
 import { BillDataType, BillServicesType, ExcelRowData, FlowChildJobType, HorisoesCoosaludMetadataType, PreRadicadosCreatedType, RadicacionCodesType } from '../types'
 import * as executionService from '@/modules/Execution/execution.service'
@@ -395,6 +395,7 @@ export class HorisoesCoosaludServices {
         try {
             const sheet = 'Radicados'
             let fileCodes = await googleapis.sheets.getValues(EXCEL_FILE_ID, sheet, 'E:E')
+            const statuses = await googleapis.sheets.getValues(EXCEL_FILE_ID, sheet, 'L:L')
             const services = await googleapis.sheets.getValues(EXCEL_FILE_ID, sheet, 'M:M')
 
             const updateRows: {
@@ -406,10 +407,12 @@ export class HorisoesCoosaludServices {
                 const date = preRadicado[7] as string
                 const code = preRadicado[4] as string
                 const radicado = preRadicado[10] as string
-                const executionId = preRadicados.find(pre_radicado => pre_radicado.code === code)?.executionId
                 let rowIndex = fileCodes.findIndex(row => row[0] === code)
+                const executionId = preRadicados.find(pre_radicado => pre_radicado.code === code)?.executionId as string
+                const service = services[rowIndex]?.[0] as string
+                const statusInFile = statuses[rowIndex]?.[0] as string
 
-                if(rowIndex == -1 && !radicado) continue
+                if (rowIndex == -1 && !radicado || statusInFile === 'ERROR') continue
 
                 // Preradicado not found - insert
                 if (rowIndex == -1) {
@@ -424,7 +427,6 @@ export class HorisoesCoosaludServices {
                     range: `Radicados!A${rowNumber}:L${rowNumber}`,
                     values: [preRadicado]
                 })
-                const service: string = services[rowIndex]?.[0]
 
                 // Row without 'radicado'
                 if (!radicado) {
@@ -438,17 +440,11 @@ export class HorisoesCoosaludServices {
                     // Delete Google Drive folder
                     const preRadicadoFolder = (await googleapis.drive.getDriveFolder(RADICADOS_FOLDER_ID, code))?.id
                     if (preRadicadoFolder) await googleapis.drive.trashDriveFolder(preRadicadoFolder)
+                    await delay(500)
                     continue
                 }
 
-                // Set preradicado data & update status in db
-                const metadata = (await executionService.getExecution(executionId))?.metadata as unknown as HorisoesCoosaludMetadataType
-                if (metadata) {
-                    const findPreRadicado = metadata.pre_radicados.find(pre_radicado => pre_radicado.codigo === code)
-                    if (findPreRadicado) findPreRadicado.radicado = true
-                    await executionService.updateExecutionMetadata(executionId, metadata)
-                }
-                preRadicadosData.push({ date, service, code, radicado })
+                preRadicadosData.push({ executionId, date, service, code, radicado })
             }
 
             // Update sheet
@@ -703,7 +699,7 @@ export class HorisoesCoosaludServices {
     /**
      * Metodo para actualizar la carpeta alojada en Google Drive, que contiene los radicados con sus respectivas facturas.     
      */
-    async updateRadicadosFolder(context: BrowserContext, page: Page, updatePreradicados: { date: string, code: string, radicado: string }[]) {
+    async updateRadicadosFolder(context: BrowserContext, page: Page, updatePreradicados: { executionId: string, date: string, code: string, radicado: string }[]) {
         try {
             console.log('\nUpdating radicados folder...\n')
             for (const preRadicado of updatePreradicados) {
@@ -729,7 +725,19 @@ export class HorisoesCoosaludServices {
                 if (!uploadCertificate) throw new Error()
                 console.log('Certificate uploaded')
 
+                // Set preradicado data & update status in db
+                const executionId = preRadicado.executionId
+                const metadata = (await executionService.getExecution(executionId))?.metadata as unknown as HorisoesCoosaludMetadataType
+                if (metadata) {
+                    const findPreRadicado = metadata.pre_radicados.find(pre_radicado => pre_radicado.codigo === preRadicado.code)
+                    if (findPreRadicado) {
+                        findPreRadicado.radicado = true
+                        await executionService.updateExecutionMetadata(executionId, metadata)
+                    }
+                }
+
                 console.log(`Preradicado ${preRadicado.code}/${preRadicado.radicado} finished\n`)
+                await delay(500)
             }
 
             return true
@@ -853,7 +861,7 @@ export class HorisoesCoosaludServices {
     static async uploadDriveBill(billData: BillDataType) {
         try {
             if (!billData.success || !billData.radicado) return billData
-            const preRadicado = billData.radicado            
+            const preRadicado = billData.radicado
 
             // Find folder
             let preRadicadoFolder = (await googleapis.drive.getDriveFolder(RADICADOS_FOLDER_ID, preRadicado))?.id

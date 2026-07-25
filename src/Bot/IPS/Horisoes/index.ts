@@ -113,7 +113,7 @@ class HorisoesBot {
 
             // Googleapis
             const googleServicesStatus = await googleapis.servicesHealthCheck()
-            if (!googleServicesStatus?.online) throw new Error(`Google Apis Error - ${googleServicesStatus?.error}`)
+            if (!googleServicesStatus.online) throw new Error(googleServicesStatus.error)
 
             return true
         } catch (err) {
