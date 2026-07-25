@@ -76,14 +76,19 @@ export const googleapis = {
 
             return {
                 online: true,
+                error: ''
             }
         } catch (err) {
             if (err instanceof Error) {
                 console.error(err)
                 return {
                     online: false,
-                    error: err.message
+                    error: `Google Apis Error - ${err.message}`
                 }
+            }
+            return {
+                online: false,
+                error: 'Google Apis Error'
             }
         }
     },
@@ -332,7 +337,7 @@ export const googleapis = {
          */
         async updateRows(spreadsheetId: string, data: { range: string, values: unknown[][] }[]) {
             await sheets.spreadsheets.values.batchUpdate({
-                spreadsheetId,                
+                spreadsheetId,
                 requestBody: {
                     valueInputOption: 'USER_ENTERED',
                     data
